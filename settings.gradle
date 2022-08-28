@@ -1,4 +1,4 @@
-rootProject.name = "spring-sync"
+rootProject.name = "spring-sync-ws"
 
 include 'docs', 'docs:manual'
 def docs = findProject(':docs')

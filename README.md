@@ -1,5 +1,5 @@
-# Spring Sync
+# Spring Sync Ws
 
-Enables efficient communication and data synchronization between clients and Spring server applications.
+Fork of Spring Sync, project created in order to enable efficient communication and data synchronization between clients and Spring server applications.
 
-> Note: This project is incubation and we are considering how to proceed with it.
+The aim of this project is to introduce realtime WebSocket/STOMP communication between clients and Spring Sync backend.
