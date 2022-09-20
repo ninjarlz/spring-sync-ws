@@ -44,6 +44,7 @@ configure(allprojects) {
 	ext.servletApiVersion        = "4.0.1"
 	ext.lombokVersion            = "1.18.24"
 	ext.hibernateVersion         = "5.6.11.Final"
+	ext.h2Version                = "2.1.214"
 
 	apply plugin: "java"
 	apply plugin: "eclipse"
@@ -113,10 +114,8 @@ configure(allprojects) {
 	}
 
 	ext.javadocLinks = [
-		"http://docs.oracle.com/javase/7/docs/api/",
-		"http://docs.oracle.com/javaee/7/api/",
-		"http://docs.spring.io/spring/docs/${springVersion}/javadoc-api/",
-		"http://docs.jboss.org/jbossas/javadoc/4.0.5/connector/"
+		"https://docs.oracle.com/en/java/javase/17/docs/api/",
+		"http://docs.spring.io/spring/docs/${springVersion}/javadoc-api/"
 	] as String[]
 
 	// servlet-api (2.5) and tomcat-servlet-api (3.0) classpath entries should not be
@@ -160,6 +159,7 @@ project('spring-sync-config') {
 		implementation(project(":spring-sync-web"))
 		implementation("org.springframework:spring-core:${springVersion}")
 		implementation("org.springframework:spring-context:${springVersion}")
+		implementation("org.springframework:spring-webmvc:${springVersion}")
 		implementation "javax.servlet:javax.servlet-api:${servletApiVersion}", optional
 	}
 }
@@ -187,7 +187,7 @@ project('spring-sync-core-android') {
 
 	dependencies {
 		implementation("org.springframework.android:spring-android-core:${springAndroidVersion}")
-		implementation("org.springframework:spring-expression:5.3.22") {
+		implementation("org.springframework:spring-expression:${springVersion}") {
 			// exclude in favor of Spring for Android Core
 			exclude group: "org.springframework", module: "spring-core"
 		}
@@ -211,7 +211,7 @@ project('spring-sync-web') {
 		implementation "javax.servlet:javax.servlet-api:${servletApiVersion}", optional
 		implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}", optional
 		testImplementation("org.hibernate:hibernate-entitymanager:${hibernateVersion}")
-		testImplementation("com.h2database:h2:1.4.180")
+		testImplementation("com.h2database:h2:${h2Version}")
 		testImplementation("org.springframework.data:spring-data-commons:${springDataCommonsVersion}")
 		testImplementation("org.springframework.data:spring-data-jpa:${springDataJpaVersion}")
 		testImplementation("org.springframework:spring-orm:${springVersion}")
