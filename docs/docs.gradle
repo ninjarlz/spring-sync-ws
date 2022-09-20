@@ -1,38 +1,20 @@
     // Docbook and Javadoc building and uploading tasks
 apply plugin: 'base'
 
-description = "Spring Sync - Documentation"
+description = "Spring Sync WS - Documentation"
 
 task docs {
     dependsOn 'manual:asciidoctor', 'apidocs'
 }
 
 project('manual') {
-    description = "Spring Sync - Reference Manual"
+    description = "Spring Sync WS - Reference Manual"
     apply plugin: 'base'
-    apply plugin: 'asciidoctor'
+    apply plugin: 'org.asciidoctor.jvm.convert'
 
     ext.expandPlaceholders = ""
 
-    asciidoctor {
-        options = [
-          eruby: 'erubis',
-          attributes: [
-              copycss : '',
-              icons : 'font',
-              'source-highlighter': 'prettify',
-              sectanchors : '',
-              toc2: '',
-              idprefix: '',
-              idseparator: '-',
-              doctype: 'book',
-              numbered: '',
-              'spring-sync-version' : project.version,
-              'spring-version' : springVersion,
-              revnumber : project.version
-          ]
-        ]
-    }
+    asciidoctor {}
 
 
     ext.spec = copySpec {
@@ -45,7 +27,7 @@ project('manual') {
 
 task apidocs(type: Javadoc) {
     destinationDir = new File(buildDir, 'apidocs')
-    title = "Spring Sync $version API"
+    title = "Spring Sync WS $version API"
 
     source coreModuleProjects.collect { project ->
         project.sourceSets.main.allJava
@@ -60,7 +42,7 @@ apidocs.options.outputLevel = org.gradle.external.javadoc.JavadocOutputLevel.QUI
 
 apidocs.options.links = [
     "http://docs.spring.io/spring/docs/4.1.x/javadoc-api/",
-    "http://download.oracle.com/javase/6/docs/api/"
+    "https://docs.oracle.com/en/java/javase/17/docs/api/"
 ]
 
 apidocs.options.groups = [

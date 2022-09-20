@@ -15,7 +15,7 @@
  */
 package org.springframework.sync.diffsync.web;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,7 +41,13 @@ import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.NestedServletException;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes=EmbeddedDataSourceConfig.class)
@@ -50,6 +56,8 @@ public class DiffSyncControllerTest {
 
 	private static final String RESOURCE_PATH = "/todos";
 
+	@PersistenceContext
+	private EntityManager entityManager;
 	@Autowired
 	private TodoRepository repository;
 	
@@ -102,26 +110,16 @@ public class DiffSyncControllerTest {
 	}
 
 	@Test
-	public void patchSendsEntityIdChange() throws Exception {
+	public void patchSendsEntityIdChange() {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
-		mvc.perform(
-				patch(RESOURCE_PATH + "/2")
-				.content(resource("patch-change-entity-id"))
-				.accept(JSON_PATCH)
-				.contentType(JSON_PATCH))
-			.andExpect(status().isOk())
-			.andExpect(content().string("[]"))
-			.andExpect(content().contentType(JSON_PATCH));
 
-		List<Todo> all = (List<Todo>) repository.findAll();
-		assertEquals(4, all.size());
-		assertEquals(new Todo(1L, "A", false), all.get(0));
-		assertEquals(new Todo(2L, "B", false), all.get(1));
-		assertEquals(new Todo(3L, "C", false), all.get(2));
-		assertEquals(new Todo(4L, "B", false), all.get(3)); // This is odd behavior, but correct in the context of the backing database.
-	}
+		Exception e = assertThrows(NestedServletException.class, () -> mvc.perform(patch(RESOURCE_PATH + "/2")
+								.content(resource("patch-change-entity-id"))
+								.accept(JSON_PATCH)
+								.contentType(JSON_PATCH)));
+		assertTrue(e.getCause() instanceof PersistenceException);
+}
 
 	//
 	// list patching
@@ -344,7 +342,7 @@ public class DiffSyncControllerTest {
 
 		performNoOpRequestToSetupShadow(mvc);
 		
-		repository.delete(2L);
+		repository.deleteById(2L);
 		
 		mvc.perform(
 				patch(RESOURCE_PATH)
@@ -369,7 +367,7 @@ public class DiffSyncControllerTest {
 		
 		performNoOpRequestToSetupShadow(mvc);
 		
-		repository.delete(2L);
+		repository.deleteById(2L);
 		
 		mvc.perform(
 				patch(RESOURCE_PATH)
@@ -421,7 +419,7 @@ public class DiffSyncControllerTest {
 		ShadowStore shadowStore = new MapBasedShadowStore("x");
 		
 		PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
-		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<Todo>(todoRepository, Todo.class));
+		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<Todo>(todoRepository, entityManager, Todo.class));
 		
 		DiffSyncController controller = new DiffSyncController(callbackRegistry, shadowStore);
 		MockMvc mvc = standaloneSetup(controller)

@@ -1,6 +1,10 @@
-Spring Sync Changelog
+Spring Sync Ws Changelog
 =======================
 
+Spring Sync Ws:
+
+
+Spring Sync:
 1.0.0.M1 - October 22, 2014
 ----------------------------
 New Features

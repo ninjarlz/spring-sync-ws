@@ -46,7 +46,7 @@ public class Diff {
 		try {
 			List<PatchOperation> operations = new ArrayList<PatchOperation>();
 			if (original instanceof List && modified instanceof List) {
-				diffList(operations, "", (List<?>) original, (List<?>) modified);
+				diffList(operations, "", (List<Object>) original, (List<Object>) modified);
 			} else {
 				diffNonList(operations, "", original, modified);
 			}
@@ -59,7 +59,7 @@ public class Diff {
 	
 	// private helpers
 	
-	private static void diffList(List<PatchOperation> operations, String path, List<?> original, List<?> modified) throws IOException, IllegalAccessException {
+	private static void diffList(List<PatchOperation> operations, String path, List<Object> original, List<Object> modified) throws IOException, IllegalAccessException {
 	
 		difflib.Patch diff = DiffUtils.diff(original, modified);
 		List<Delta> deltas = diff.getDeltas();
@@ -108,7 +108,7 @@ public class Diff {
 				return;
 			}
 						
-			Class<? extends Object> originalType = original.getClass();
+			Class<?> originalType = original.getClass();
 			Field[] fields = originalType.getDeclaredFields();
 			for (Field field : fields) {
 				field.setAccessible(true);
@@ -117,7 +117,7 @@ public class Diff {
 				Object modValue = field.get(modified);
 				if ((fieldType.isArray() || Collection.class.isAssignableFrom(fieldType)) && origValue != null && modValue != null) {
 					if (Collection.class.isAssignableFrom(fieldType)) {
-						diffList(operations, path + "/" + field.getName(), (List<?>) origValue, (List<?>) modValue);
+						diffList(operations, path + "/" + field.getName(), (List<Object>) origValue, (List<Object>) modValue);
 					}
 					else if (fieldType.isArray()) {
 						diffList(operations, path + "/" + field.getName(), Arrays.asList((Object[]) origValue), Arrays.asList((Object[]) modValue));
