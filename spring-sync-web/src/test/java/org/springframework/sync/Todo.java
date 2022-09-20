@@ -23,14 +23,18 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Roy Clarkson
  * @author Craig Walls
  */
 @Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Todo implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -42,52 +46,4 @@ public class Todo implements Serializable {
 	private String description;
 
 	private boolean complete;
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-	
-	public Long getId() {
-		return id;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-	
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	public boolean isComplete() {
-		return complete;
-	}
-	
-	public void setComplete(boolean complete) {
-		this.complete = complete;
-	}
-
-	public Todo() {
-	}
-
-	public Todo(Long id, String description, boolean complete) {
-		this.id = id;
-		this.description = description;
-		this.complete = complete;
-	}
-	
-	@Override
-	public String toString() {
-		return "[ id=" + this.id + ", description=" + this.description + ", complete=" + this.complete + " ]";
-	}
-
-	@Override
-	public boolean equals(Object other) {
-		return EqualsBuilder.reflectionEquals(this, other);
-	}
-	
-	@Override
-	public int hashCode() {
-		return HashCodeBuilder.reflectionHashCode(this);
-	}
 }

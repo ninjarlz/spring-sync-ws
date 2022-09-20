@@ -16,19 +16,21 @@
 package org.springframework.sync.diffsync.web;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.sync.diffsync.PersistenceCallback;
 
+import javax.persistence.EntityManager;
+
+@RequiredArgsConstructor
 class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
 	
 	private final CrudRepository<T, Long> repo;
-	private Class<T> entityType;
-
-	public JpaPersistenceCallback(CrudRepository<T, Long> repo, Class<T> entityType) {
-		this.repo = repo;
-		this.entityType = entityType;
-	}
+	private final EntityManager entityManager;
+	private final Class<T> entityType;
 	
 	@Override
 	public List<T> findAll() {
@@ -37,18 +39,20 @@ class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
 	
 	@Override
 	public T findOne(String id) {
-		return repo.findOne(Long.valueOf(id));
+		return repo.findById(Long.valueOf(id)).orElseThrow(NoSuchElementException::new);
 	}
 	
 	@Override
 	public void persistChange(T itemToSave) {
 		repo.save(itemToSave);
+		entityManager.flush();
 	}
 	
 	@Override
 	public void persistChanges(List<T> itemsToSave, List<T> itemsToDelete) {
-		repo.save(itemsToSave);
-		repo.delete(itemsToDelete);
+		repo.saveAll(itemsToSave);
+		repo.deleteAll(itemsToDelete);
+		entityManager.flush();
 	}
 
 	@Override

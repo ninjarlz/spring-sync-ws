@@ -15,11 +15,6 @@
  */
 package org.springframework.sync.diffsync;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.sql.DataSource;
-
 import org.hibernate.dialect.H2Dialect;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +27,9 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.Database;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import javax.sql.DataSource;
+import java.util.Map;
 
 @Configuration
 @EnableJpaRepositories(basePackages="org.springframework.sync")
@@ -46,9 +44,7 @@ public class EmbeddedDataSourceConfig {
 
 	@Bean
 	public Map<String, Object> jpaProperties() {
-			Map<String, Object> props = new HashMap<String, Object>();
-			props.put("hibernate.dialect", H2Dialect.class.getName());
-			return props;
+		return Map.of("hibernate.dialect", H2Dialect.class.getName());
 	}
 
 	@Bean
@@ -62,7 +58,7 @@ public class EmbeddedDataSourceConfig {
 
 	@Bean
 	public PlatformTransactionManager transactionManager() {
-			return new JpaTransactionManager( entityManagerFactory().getObject() );
+			return new JpaTransactionManager(entityManagerFactory().getObject());
 	}
 
 	@Bean

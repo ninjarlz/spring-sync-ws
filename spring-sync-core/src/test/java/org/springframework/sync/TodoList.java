@@ -15,9 +15,14 @@
  */
 package org.springframework.sync;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.List;
 
+@Getter
+@Setter
 public class TodoList implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -27,29 +32,4 @@ public class TodoList implements Serializable {
 	private Todo[] todoArray;
 	
 	private String name;
-
-	public List<Todo> getTodos() {
-		return todos;
-	}
-
-	public void setTodos(List<Todo> todos) {
-		this.todos = todos;
-	}
-
-	public Todo[] getTodoArray() {
-		return todoArray;
-	}
-
-	public void setTodoArray(Todo[] todoArray) {
-		this.todoArray = todoArray;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-	
 }
