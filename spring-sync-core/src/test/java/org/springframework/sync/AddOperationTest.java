@@ -26,9 +26,9 @@ public class AddOperationTest {
 
 	
 	@Test
-	public void addBooleanPropertyValue() throws Exception {
+	public void addBooleanPropertyValue() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -40,9 +40,9 @@ public class AddOperationTest {
 	}
 
 	@Test
-	public void addStringPropertyValue() throws Exception {
+	public void addStringPropertyValue() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -55,9 +55,9 @@ public class AddOperationTest {
 
 	
 	@Test
-	public void addItemToList() throws Exception {
+	public void addItemToList() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));

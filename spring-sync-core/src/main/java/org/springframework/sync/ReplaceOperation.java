@@ -22,13 +22,15 @@ package org.springframework.sync;
  */
 public class ReplaceOperation extends PatchOperation {
 
+	public static final String OP_TYPE = "replace";
+
 	/**
 	 * Constructs the replace operation
 	 * @param path The path whose value is to be replaced. (e.g., '/foo/bar/4')
 	 * @param value The value that will replace the current path value.
 	 */
 	public ReplaceOperation(String path, Object value) {
-		super("replace", path, value);
+		super(OP_TYPE, path, value);
 	}
 	
 	@Override

@@ -22,6 +22,8 @@ package org.springframework.sync;
  */
 public abstract class FromOperation extends PatchOperation {
 
+	public static final String FROM_ENTRY = "from";
+
 	protected String from;
 	
 	/**

@@ -18,6 +18,7 @@ package org.springframework.sync.json;
 import org.springframework.sync.Patch;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.sync.PatchException;
 
 /**
  * <p>A strategy interface for producing {@link Patch} instances from a patch document representation (such as JSON Patch) and 
@@ -37,7 +38,7 @@ public interface PatchConverter<T> {
 	 * @param patchRepresentation the representation of a patch.
 	 * @return the {@link Patch} object that the document represents.
 	 */
-	Patch convert(T patchRepresentation);
+	Patch convert(T patchRepresentation) throws PatchException;
 	
 	/**
 	 * Convert a {@link Patch} to a representation object.

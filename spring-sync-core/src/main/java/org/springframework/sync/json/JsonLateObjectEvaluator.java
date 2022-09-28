@@ -15,10 +15,9 @@
  */
 package org.springframework.sync.json;
 
-import org.springframework.sync.LateObjectEvaluator;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.sync.LateObjectEvaluator;
 
 /**
  * {@link LateObjectEvaluator} implementation that assumes values represented as JSON objects.
@@ -28,7 +27,7 @@ class JsonLateObjectEvaluator implements LateObjectEvaluator {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private JsonNode valueNode;
+	private final JsonNode valueNode;
 
 	public JsonLateObjectEvaluator(JsonNode valueNode) {
 		this.valueNode = valueNode;

@@ -25,9 +25,9 @@ import org.junit.Test;
 public class ReplaceOperationTest {
 
 	@Test
-	public void replaceBooleanPropertyValue() throws Exception {
+	public void replaceBooleanPropertyValue() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -39,9 +39,9 @@ public class ReplaceOperationTest {
 	}
 
 	@Test
-	public void replaceTextPropertyValue() throws Exception {
+	public void replaceTextPropertyValue() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -53,9 +53,9 @@ public class ReplaceOperationTest {
 	}
 
 	@Test
-	public void replaceTextPropertyValueWithANumber() throws Exception {
+	public void replaceTextPropertyValueWithANumber() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));

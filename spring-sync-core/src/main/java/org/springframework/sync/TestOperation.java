@@ -33,21 +33,25 @@ import org.springframework.util.ObjectUtils;
  */
 public class TestOperation extends PatchOperation {
 
+	public static final String OP_TYPE = "test";
+
+	private static final String TEST_AGAINST_PATH_FAIL_MSG = "Test against path '%s' failed.";
+
 	/**
 	 * Constructs the test operation
 	 * @param path The path to test. (e.g., '/foo/bar/4')
 	 * @param value The value to test the path against.
 	 */
 	public TestOperation(String path, Object value) {
-		super("test", path, value);
+		super(OP_TYPE, path, value);
 	}
 	
 	@Override
-	<T> void perform(Object target, Class<T> type) {
+	<T> void perform(Object target, Class<T> type) throws PatchException {
 		Object expected = normalizeIfNumber(evaluateValueFromTarget(target, type));
 		Object actual = normalizeIfNumber(getValueFromTarget(target));		
 		if (!ObjectUtils.nullSafeEquals(expected, actual)) {
-			throw new PatchException("Test against path '" + path + "' failed.");
+			throw new PatchException(String.format(TEST_AGAINST_PATH_FAIL_MSG, path));
 		}
 	}
 	

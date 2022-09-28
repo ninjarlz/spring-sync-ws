@@ -29,6 +29,9 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
  */
 public class PathToSpEL {
 
+	private static final String SIZE_SUFFIX = "[size() - 1]";
+	private static final String THIS_ENTRY = "#this";
+
 	private static final SpelExpressionParser SPEL_EXPRESSION_PARSER = new SpelExpressionParser();
 
 	/**
@@ -66,32 +69,31 @@ public class PathToSpEL {
 	
 	private static String pathNodesToSpEL(String[] pathNodes) {
 		StringBuilder spelBuilder = new StringBuilder();
-		
-		for(int i=0; i < pathNodes.length; i++) {
-			String pathNode = pathNodes[i];
+
+		for (String pathNode : pathNodes) {
 			if (pathNode.length() == 0) {
 				continue;
 			}
-			
+
 			if ("~".equals(pathNode)) {
-				spelBuilder.append("[size() - 1]");
+				spelBuilder.append(SIZE_SUFFIX);
 				continue;
 			}
-			
+
 			try {
 				int index = Integer.parseInt(pathNode);
 				spelBuilder.append('[').append(index).append(']');
 			} catch (NumberFormatException e) {
-				if (spelBuilder.length() > 0) {
-					spelBuilder.append('.');	
+				if (!spelBuilder.isEmpty()) {
+					spelBuilder.append('.');
 				}
 				spelBuilder.append(pathNode);
 			}
 		}
 		
 		String spel = spelBuilder.toString();
-		if (spel.length() == 0) {
-			spel = "#this";
+		if (spel.isEmpty()) {
+			return THIS_ENTRY;
 		}
 		return spel;		
 	}
@@ -102,8 +104,7 @@ public class PathToSpEL {
 	}
 
 	// reproduces Arrays.copyOf because that API is missing on Android 2.2
-	private static <T, U> T[] copyOf(U[] original, int newLength,
-			Class<? extends T[]> newType) {
+	private static <T, U> T[] copyOf(U[] original, int newLength, Class<? extends T[]> newType) {
 		@SuppressWarnings("unchecked")
 		T[] copy = ((Object) newType == (Object) Object[].class) ? (T[]) new Object[newLength]
 				: (T[]) Array.newInstance(newType.getComponentType(), newLength);

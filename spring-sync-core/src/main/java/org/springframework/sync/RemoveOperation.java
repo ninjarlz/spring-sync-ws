@@ -23,16 +23,18 @@ package org.springframework.sync;
  */
 public class RemoveOperation extends PatchOperation {
 
+	public static final String OP_TYPE = "remove";
+
 	/**
 	 * Constructs the remove operation
 	 * @param path The path of the value to be removed. (e.g., '/foo/bar/4')
 	 */
 	public RemoveOperation(String path) {
-		super("remove", path);
+		super(OP_TYPE, path);
 	}
 	
 	@Override
-	<T> void perform(Object target, Class<T> type) {
+	<T> void perform(Object target, Class<T> type) throws PatchException {
 		popValueAtPath(target, path);
 	}
 

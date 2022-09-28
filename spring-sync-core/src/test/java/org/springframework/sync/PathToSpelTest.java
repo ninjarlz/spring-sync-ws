@@ -28,7 +28,7 @@ public class PathToSpelTest {
 	@Test
 	public void listIndex() {
 		Expression expr = PathToSpEL.pathToExpression("/1/description");
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -38,7 +38,7 @@ public class PathToSpelTest {
 	@Test
 	public void listTilde() {
 		Expression expr = PathToSpEL.pathToExpression("/~/description");
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));

@@ -15,13 +15,16 @@
  */
 package org.springframework.sync;
 
-import static org.springframework.sync.PathToSpEL.*;
-
-import java.util.List;
-
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionException;
 import org.springframework.expression.spel.SpelEvaluationException;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import static org.springframework.sync.PathToSpEL.pathToExpression;
+import static org.springframework.sync.PathToSpEL.pathToParentExpression;
 
 /**
  * Abstract base class representing and providing support methods for patch operations.
@@ -29,6 +32,13 @@ import org.springframework.expression.spel.SpelEvaluationException;
  * @author Craig Walls
  */
 public abstract class PatchOperation {
+
+	public static final String PATH_ENTRY = "path";
+	public static final String OP_ENTRY = "op";
+	public static final String VALUE_ENTRY = "value";
+
+	private static final String PATH_NOT_NULLABLE_MSG = "Path '%s' is not nullable.";
+	private static final String UNABLE_TO_GET_VALUE_MSG = "Unable to get value from target";
 
 	protected final String op;
 	
@@ -87,7 +97,7 @@ public abstract class PatchOperation {
 	 * @param removePath the path from which to pop a value. Must be a list.
 	 * @return the value popped from the list
 	 */
-	protected Object popValueAtPath(Object target, String removePath) {
+	protected Object popValueAtPath(Object target, String removePath) throws PatchException {
 		Integer listIndex = targetListIndex(removePath);
 		Expression expression = pathToExpression(removePath);
 		Object value = expression.getValue(target);
@@ -96,12 +106,12 @@ public abstract class PatchOperation {
 				expression.setValue(target, null);
 				return value;
 			} catch (NullPointerException | SpelEvaluationException e) {
-				throw new PatchException("Path '" + removePath + "' is not nullable.");
+				throw new PatchException(String.format(PATH_NOT_NULLABLE_MSG, removePath));
 			}
 		} else {
 			Expression parentExpression = pathToParentExpression(removePath);
 			List<?> list = (List<?>) parentExpression.getValue(target);
-			list.remove(listIndex >= 0 ? listIndex.intValue() : list.size() - 1);
+			list.remove(listIndex >= 0 ? listIndex : list.size() - 1);
 			return value;
 		}
 	}
@@ -115,14 +125,14 @@ public abstract class PatchOperation {
 	 */
 	protected void addValue(Object target, Object value) {
 		Expression parentExpression = pathToParentExpression(path);
-		Object parent = parentExpression != null ? parentExpression.getValue(target) : null;
+		Object parent = Optional.ofNullable(parentExpression.getValue(target)).orElse(null);
 		Integer listIndex = targetListIndex(path);
-		if (parent == null || !(parent instanceof List) || listIndex == null) {
+		if (!(parent instanceof List) || Objects.isNull(listIndex)) {
 			spelExpression.setValue(target, value);
 		} else {
 			@SuppressWarnings("unchecked")
 			List<Object> list = (List<Object>) parentExpression.getValue(target);
-			int addAtIndex = listIndex >= 0 ? listIndex.intValue() : list.size();
+			int addAtIndex = listIndex >= 0 ? listIndex : list.size();
 			list.add(addAtIndex, value);
 		}
 	}
@@ -141,11 +151,11 @@ public abstract class PatchOperation {
 	 * @param target the target object.
 	 * @return the value at the path on the given target object.
 	 */
-	protected Object getValueFromTarget(Object target) {
+	protected Object getValueFromTarget(Object target) throws PatchException {
 		try {
 			return spelExpression.getValue(target);
 		} catch (ExpressionException e) {
-			throw new PatchException("Unable to get value from target", e);
+			throw new PatchException(UNABLE_TO_GET_VALUE_MSG, e);
 		}
 	}
 	
@@ -164,7 +174,7 @@ public abstract class PatchOperation {
 	 * Perform the operation.
 	 * @param target the target of the operation.
 	 */
-	abstract <T> void perform(Object target, Class<T> type);
+	abstract <T> void perform(Object target, Class<T> type) throws PatchException;
 
 	// private helpers
 	

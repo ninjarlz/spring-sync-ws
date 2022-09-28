@@ -35,7 +35,7 @@ public class JsonPatchTest {
 	@Test
 	public void manySuccessfulOperations() throws Exception {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", true));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -57,7 +57,7 @@ public class JsonPatchTest {
 	@Test
 	public void failureAtBeginning() throws Exception {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", true));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -85,7 +85,7 @@ public class JsonPatchTest {
 	@Test
 	public void failureInMiddle() throws Exception {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", true));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -112,12 +112,11 @@ public class JsonPatchTest {
 
 	
 	
-	private Patch readJsonPatch(String jsonPatchFile) throws IOException, JsonParseException, JsonMappingException {
+	private Patch readJsonPatch(String jsonPatchFile) throws IOException, PatchException {
 		ClassPathResource resource = new ClassPathResource(jsonPatchFile);
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode node = mapper.readValue(resource.getInputStream(), JsonNode.class);
-		Patch patch = new JsonPatchPatchConverter().convert(node);
-		return patch;
+		return new JsonPatchPatchConverter().convert(node);
 	}
 	
 }

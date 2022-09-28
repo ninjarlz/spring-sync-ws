@@ -7,9 +7,9 @@ import org.springframework.sync.PatchOperation;
 
 public class VersionedPatch extends Patch {
 
-	private long serverVersion;
+	private final long serverVersion;
 	
-	private long clientVersion;
+	private final long clientVersion;
 	
 	public VersionedPatch(List<PatchOperation> operations, long serverVersion, long clientVersion) {
 		super(operations);

@@ -27,14 +27,14 @@ public class PatchTest {
 	@Test
 	public void replacePropertyOnEntityInListProperty() throws Exception {
 
-		ArrayList<Todo> todos = new ArrayList<Todo>();
+		ArrayList<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		TodoList before = new TodoList();
 		before.setTodos(todos);
 		
-		todos = new ArrayList<Todo>();
+		todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));

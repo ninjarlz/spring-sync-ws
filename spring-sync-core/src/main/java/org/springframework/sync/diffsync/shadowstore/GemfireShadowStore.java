@@ -31,9 +31,9 @@ import org.springframework.sync.diffsync.ShadowStore;
  */
 public class GemfireShadowStore extends AbstractShadowStore implements DisposableBean {
 
-	private GemfireOperations gemfireTemplate;
+	private final GemfireOperations gemfireTemplate;
 	
-	private List<String> keys = new ArrayList<String>();
+	private final List<String> keys = new ArrayList<>();
 
 	/**
 	 * Constructs a GemFire-based {@link ShadowStore}.
@@ -58,10 +58,8 @@ public class GemfireShadowStore extends AbstractShadowStore implements Disposabl
 	}
 
 	@Override
-	public void destroy() throws Exception {
-		for (String key : keys) {
-			gemfireTemplate.remove(key);
-		}
+	public void destroy() {
+		keys.forEach(gemfireTemplate::remove);
 	}
 	
 }

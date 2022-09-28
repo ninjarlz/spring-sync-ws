@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.ObjectUtils;
 
 import difflib.Delta;
@@ -34,6 +35,8 @@ import difflib.DiffUtils;
  */
 public class Diff {
 
+	private static final String DIFF_ERROR_MSG = "Error performing diff:";
+
 	/**
 	 * Performs a difference operation between two objects, resulting in a {@link Patch} describing the differences.
 	 * 
@@ -42,54 +45,59 @@ public class Diff {
 	 * @return a {@link Patch} describing the differences between the two objects.
 	 * @throws PatchException if an error occurs while performing the difference.
 	 */
+	@SuppressWarnings("unchecked")
 	public static Patch diff(Object original, Object modified) throws PatchException {
 		try {
-			List<PatchOperation> operations = new ArrayList<PatchOperation>();
+			List<PatchOperation> operations = new ArrayList<>();
 			if (original instanceof List && modified instanceof List) {
-				diffList(operations, "", (List<Object>) original, (List<Object>) modified);
+				diffList(operations, StringUtils.EMPTY, (List<Object>) original, (List<Object>) modified);
 			} else {
-				diffNonList(operations, "", original, modified);
+				diffNonList(operations, StringUtils.EMPTY, original, modified);
 			}
-			
 			return new Patch(operations);
 		} catch (Exception e) {
-			throw new PatchException("Error performing diff:", e);
+			throw new PatchException(DIFF_ERROR_MSG, e);
 		}
 	}
 	
 	// private helpers
-	
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
 	private static void diffList(List<PatchOperation> operations, String path, List<Object> original, List<Object> modified) throws IOException, IllegalAccessException {
-	
 		difflib.Patch diff = DiffUtils.diff(original, modified);
 		List<Delta> deltas = diff.getDeltas();
 		for (Delta delta : deltas) {
 			TYPE type = delta.getType();
 			int revisedPosition = delta.getRevised().getPosition();
-			if (type == TYPE.CHANGE) {
-				List<?> lines = delta.getRevised().getLines();
-				for(int offset = 0; offset < lines.size(); offset++) {
-					Object originalObject = original.get(revisedPosition + offset);
-					Object revisedObject = modified.get(revisedPosition + offset);
-					diffNonList(operations, path + "/" + (revisedPosition + offset), originalObject, revisedObject);					
+
+			switch (type) {
+				case CHANGE -> {
+					List<?> lines = delta.getRevised().getLines();
+					for (int offset = 0; offset < lines.size(); offset++) {
+						Object originalObject = original.get(revisedPosition + offset);
+						Object revisedObject = modified.get(revisedPosition + offset);
+						diffNonList(operations, path + "/" + (revisedPosition + offset), originalObject, revisedObject);
+					}
 				}
-				
-			} else if (type == TYPE.INSERT) {
-				List<?> lines = delta.getRevised().getLines();
-				for(int offset = 0; offset < lines.size(); offset++) {
-					operations.add(new AddOperation(path + "/" + (revisedPosition + offset), lines.get(offset)));
+				case INSERT -> {
+					List<?> lines = delta.getRevised().getLines();
+					for (int offset = 0; offset < lines.size(); offset++) {
+						operations.add(new AddOperation(path + "/" + (revisedPosition + offset), lines.get(offset)));
+					}
 				}
-			} else if (type == TYPE.DELETE) {
-				List<?> lines = delta.getOriginal().getLines();
-				for(int offset = 0; offset < lines.size(); offset++) {
-					Object originalObject = original.get(revisedPosition + offset);
-					operations.add(new TestOperation(path + "/" + revisedPosition, originalObject));
-					operations.add(new RemoveOperation(path + "/" + revisedPosition));
+				case DELETE -> {
+					List<?> lines = delta.getOriginal().getLines();
+					for (int offset = 0; offset < lines.size(); offset++) {
+						Object originalObject = original.get(revisedPosition + offset);
+						operations.add(new TestOperation(path + "/" + revisedPosition, originalObject));
+						operations.add(new RemoveOperation(path + "/" + revisedPosition));
+					}
 				}
 			}
 		}
 	}
-	
+
+	@SuppressWarnings("unchecked")
 	private static void diffNonList(List<PatchOperation> operations, String path, Object original, Object modified) throws IOException, IllegalAccessException {
 		if (!ObjectUtils.nullSafeEquals(original, modified)) {
 			if (modified == null) {
@@ -123,10 +131,9 @@ public class Diff {
 						diffList(operations, path + "/" + field.getName(), Arrays.asList((Object[]) origValue), Arrays.asList((Object[]) modValue));
 					}
 				} else {
-					diffNonList(operations, path+"/"+field.getName(), origValue, modValue);
+					diffNonList(operations, path + "/" +field.getName(), origValue, modValue);
 				}
 			}
-			
 		}
 	}
 

@@ -25,9 +25,9 @@ import org.junit.Test;
 public class CopyOperationTest {
 
 	@Test
-	public void copyBooleanPropertyValue() throws Exception {
+	public void copyBooleanPropertyValue() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", true));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -39,9 +39,9 @@ public class CopyOperationTest {
 	}
 
 	@Test
-	public void copyStringPropertyValue() throws Exception {
+	public void copyStringPropertyValue() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", true));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -53,9 +53,9 @@ public class CopyOperationTest {
 	}
 
 	@Test
-	public void copyBooleanPropertyValueIntoStringProperty() throws Exception {
+	public void copyBooleanPropertyValueIntoStringProperty() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", true));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -67,9 +67,9 @@ public class CopyOperationTest {
 	}
 
 	@Test
-	public void copyListElementToBeginningOfList() throws Exception {
+	public void copyListElementToBeginningOfList() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", true));
 		todos.add(new Todo(3L, "C", false));
@@ -84,9 +84,9 @@ public class CopyOperationTest {
 	}
 
 	@Test
-	public void copyListElementToMiddleOfList() throws Exception {
+	public void copyListElementToMiddleOfList() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", true));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -118,7 +118,7 @@ public class CopyOperationTest {
 	}
 	
 	@Test
-	public void copyListElementToEndOfList_usingTilde() throws Exception {
+	public void copyListElementToEndOfList_usingTilde() {
 		// initial Todo list
 		List<Todo> todos = new ArrayList<Todo>();
 		todos.add(new Todo(1L, "A", true));
@@ -133,9 +133,9 @@ public class CopyOperationTest {
 	}
 
 	@Test
-	public void copyListElementFromEndOfList_usingTilde() throws Exception {
+	public void copyListElementFromEndOfList_usingTilde() {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", true));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));

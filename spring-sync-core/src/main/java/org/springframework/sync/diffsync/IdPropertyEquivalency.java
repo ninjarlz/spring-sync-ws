@@ -26,19 +26,19 @@ import org.springframework.util.ObjectUtils;
  */
 public class IdPropertyEquivalency implements Equivalency {
 
+	private static final String ID_FIELD = "id";
+
 	@Override
 	public boolean isEquivalent(Object o1, Object o2) {
 		try {
-			Field idField1 = o1.getClass().getDeclaredField("id");
+			Field idField1 = o1.getClass().getDeclaredField(ID_FIELD);
 			idField1.setAccessible(true);
 			Object id1 = idField1.get(o1);
-			Field idField2 = o2.getClass().getDeclaredField("id");
+			Field idField2 = o2.getClass().getDeclaredField(ID_FIELD);
 			idField2.setAccessible(true);
 			Object id2 = idField2.get(o2);
 			return ObjectUtils.nullSafeEquals(id1, id2);
-		} catch (NoSuchFieldException e) {
-			return false;
-		} catch (IllegalAccessException e) {
+		} catch (NoSuchFieldException | IllegalAccessException e) {
 			return false;
 		}
 	}

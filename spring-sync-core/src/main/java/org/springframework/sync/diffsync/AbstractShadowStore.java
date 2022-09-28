@@ -17,7 +17,7 @@ package org.springframework.sync.diffsync;
 
 public abstract class AbstractShadowStore implements ShadowStore {
 
-	private String nodeId;
+	private final String nodeId;
 
 	/**
 	 * Shadow store constructor
