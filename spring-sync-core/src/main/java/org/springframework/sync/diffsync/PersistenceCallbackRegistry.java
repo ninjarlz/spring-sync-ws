@@ -28,7 +28,7 @@ import org.springframework.sync.Patch;
  */
 public class PersistenceCallbackRegistry {
 
-	private Map<String, PersistenceCallback<?>> persistenceCallbacks = new HashMap<String, PersistenceCallback<?>>();
+	private final Map<String, PersistenceCallback<?>> persistenceCallbacks = new HashMap<>();
 	
 	public PersistenceCallbackRegistry() {}
 	

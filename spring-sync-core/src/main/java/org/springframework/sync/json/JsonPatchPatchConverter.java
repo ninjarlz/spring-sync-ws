@@ -18,6 +18,7 @@ package org.springframework.sync.json;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.sync.AddOperation;
 import org.springframework.sync.CopyOperation;
@@ -42,6 +43,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class JsonPatchPatchConverter implements PatchConverter<JsonNode> {
 
+	private static final String UNRECOGNIZED_OPERATION_TYPE_MSG = "Unrecognized operation type: ";
+	private static final String INVALID_JSON_NODE_MSG = "JsonNode must be an instance of ArrayNode";
+
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	/**
@@ -49,40 +53,30 @@ public class JsonPatchPatchConverter implements PatchConverter<JsonNode> {
 	 * @param jsonNode a JsonNode containing the JSON Patch
 	 * @return a {@link Patch}
 	 */
-	public Patch convert(JsonNode jsonNode) {
-		if (!(jsonNode instanceof ArrayNode)) {
-			throw new IllegalArgumentException("JsonNode must be an instance of ArrayNode");
+	public Patch convert(JsonNode jsonNode) throws PatchException {
+		if (!(jsonNode instanceof ArrayNode opNodes)) {
+			throw new PatchException(INVALID_JSON_NODE_MSG);
 		}
-		
-		ArrayNode opNodes = (ArrayNode) jsonNode;
-		List<PatchOperation> ops = new ArrayList<PatchOperation>(opNodes.size());
-		for(Iterator<JsonNode> elements = opNodes.elements(); elements.hasNext(); ) {
+		List<PatchOperation> ops = new ArrayList<>(opNodes.size());
+		for (Iterator<JsonNode> elements = opNodes.elements(); elements.hasNext(); ) {
 			JsonNode opNode = elements.next();
 			
-			String opType = opNode.get("op").textValue();
-			String path = opNode.get("path").textValue();
+			String opType = opNode.get(PatchOperation.OP_ENTRY).textValue();
+			String path = opNode.get(PatchOperation.PATH_ENTRY).textValue();
 			
-			JsonNode valueNode = opNode.get("value");
+			JsonNode valueNode = opNode.get(PatchOperation.VALUE_ENTRY);
 			Object value = valueFromJsonNode(path, valueNode);			
-			String from = opNode.has("from") ? opNode.get("from").textValue() : null;
-
-			if (opType.equals("test")) {
-				ops.add(new TestOperation(path, value));
-			} else if (opType.equals("replace")) {
-				ops.add(new ReplaceOperation(path, value));
-			} else if (opType.equals("remove")) {
-				ops.add(new RemoveOperation(path));
-			} else if (opType.equals("add")) {
-				ops.add(new AddOperation(path, value));
-			} else if (opType.equals("copy")) {
-				ops.add(new CopyOperation(path, from));
-			} else if (opType.equals("move")) {
-				ops.add(new MoveOperation(path, from));
-			} else {
-				throw new PatchException("Unrecognized operation type: " + opType);
+			String from = opNode.has(FromOperation.FROM_ENTRY) ? opNode.get(FromOperation.FROM_ENTRY).textValue() : null;
+			switch (opType) {
+				case TestOperation.OP_TYPE -> ops.add(new TestOperation(path, value));
+				case ReplaceOperation.OP_TYPE -> ops.add(new ReplaceOperation(path, value));
+				case RemoveOperation.OP_TYPE -> ops.add(new RemoveOperation(path));
+				case AddOperation.OP_TYPE -> ops.add(new AddOperation(path, value));
+				case CopyOperation.OP_TYPE -> ops.add(new CopyOperation(path, from));
+				case MoveOperation.OP_TYPE -> ops.add(new MoveOperation(path, from));
+				default -> throw new PatchException(UNRECOGNIZED_OPERATION_TYPE_MSG + opType);
 			}
 		}
-		
 		return new Patch(ops);
 	}
 	
@@ -92,30 +86,27 @@ public class JsonPatchPatchConverter implements PatchConverter<JsonNode> {
 	 * @return a {@link JsonNode} containing JSON Patch.
 	 */
 	public JsonNode convert(Patch patch) {
-		
 		List<PatchOperation> operations = patch.getOperations();
 		JsonNodeFactory nodeFactory = JsonNodeFactory.instance;
 		ArrayNode patchNode = nodeFactory.arrayNode();
 		for (PatchOperation operation : operations) {
 			ObjectNode opNode = nodeFactory.objectNode();
-			opNode.set("op", nodeFactory.textNode(operation.getOp()));
-			opNode.set("path", nodeFactory.textNode(operation.getPath()));
-			if (operation instanceof FromOperation) {
-				FromOperation fromOp = (FromOperation) operation;
-				opNode.set("from", nodeFactory.textNode(fromOp.getFrom()));
+			opNode.set(PatchOperation.OP_ENTRY, nodeFactory.textNode(operation.getOp()));
+			opNode.set(PatchOperation.PATH_ENTRY, nodeFactory.textNode(operation.getPath()));
+			if (operation instanceof FromOperation fromOp) {
+				opNode.set(FromOperation.FROM_ENTRY, nodeFactory.textNode(fromOp.getFrom()));
 			}
 			Object value = operation.getValue();
-			if (value != null) {
-				opNode.set("value", MAPPER.valueToTree(value));
+			if (Objects.nonNull(value)) {
+				opNode.set(PatchOperation.VALUE_ENTRY, MAPPER.valueToTree(value));
 			}
 			patchNode.add(opNode);
 		}
-		
 		return patchNode;
 	}
 
 	private Object valueFromJsonNode(String path, JsonNode valueNode) {
-		if (valueNode == null || valueNode.isNull()) {
+		if (Objects.isNull(valueNode) || valueNode.isNull()) {
 			return null;
 		} else if (valueNode.isTextual()) {
 			return valueNode.asText();

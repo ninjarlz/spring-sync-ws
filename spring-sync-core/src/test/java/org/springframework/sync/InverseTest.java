@@ -35,11 +35,11 @@ public class InverseTest {
 	
 	@Test
 	public void inverseOnLists() throws Exception {
-		List<Todo> original = new ArrayList<Todo>();
+		List<Todo> original = new ArrayList<>();
 		original.add(new Todo(1L, "A", false));
 		original.add(new Todo(2L, "B", false));
 		original.add(new Todo(3L, "C", false));
-		List<Todo> modified = new ArrayList<Todo>();
+		List<Todo> modified = new ArrayList<>();
 		modified.add(new Todo(111L, "A", false));
 		modified.add(new Todo(2L, "BBB", false));
 		modified.add(new Todo(3L, "C", true));

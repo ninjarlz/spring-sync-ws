@@ -24,13 +24,15 @@ package org.springframework.sync;
  */
 public class AddOperation extends PatchOperation {
 
+	public static final String OP_TYPE = "add";
+
 	/**
 	 * Constructs the add operation
 	 * @param path The path where the value will be added. (e.g., '/foo/bar/4')
 	 * @param value The value to add.
 	 */
 	public AddOperation(String path, Object value) {
-		super("add", path, value);
+		super(OP_TYPE, path, value);
 	}
 	
 	@Override

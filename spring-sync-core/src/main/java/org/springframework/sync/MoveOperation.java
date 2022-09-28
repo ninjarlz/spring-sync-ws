@@ -33,17 +33,19 @@ package org.springframework.sync;
  */
 public class MoveOperation extends FromOperation {
 
+	public static final String OP_TYPE = "move";
+
 	/**
 	 * Constructs the move operation.
 	 * @param path The path to move the source value to. (e.g., '/foo/bar/4')
 	 * @param from The source path from which a value will be moved. (e.g., '/foo/bar/5')
 	 */
 	public MoveOperation(String path, String from) {
-		super("move", path, from);
+		super(OP_TYPE, path, from);
 	}
 	
 	@Override
-	<T> void perform(Object target, Class<T> type) {
+	<T> void perform(Object target, Class<T> type) throws PatchException {
 		addValue(target, popValueAtPath(target, from));
 	}
 	

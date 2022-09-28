@@ -27,7 +27,7 @@ public class RemoveOperationTest {
 	@Test
 	public void removePropertyFromObject() throws Exception {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -40,7 +40,7 @@ public class RemoveOperationTest {
 	@Test
 	public void removeItemFromList() throws Exception {
 		// initial Todo list
-		List<Todo> todos = new ArrayList<Todo>();
+		List<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));

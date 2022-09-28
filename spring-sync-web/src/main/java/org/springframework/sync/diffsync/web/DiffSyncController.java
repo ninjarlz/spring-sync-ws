@@ -43,11 +43,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class DiffSyncController {
 	
-	private ShadowStore shadowStore;
+	private final ShadowStore shadowStore;
 
-	private PersistenceCallbackRegistry callbackRegistry;
+	private final PersistenceCallbackRegistry callbackRegistry;
 	
-	private Equivalency equivalency = new IdPropertyEquivalency();
+	private final Equivalency equivalency = new IdPropertyEquivalency();
 
 	@Autowired
 	public DiffSyncController(PersistenceCallbackRegistry callbackRegistry, ShadowStore shadowStore) {
@@ -80,34 +80,34 @@ public class DiffSyncController {
 	
 	
 	@SuppressWarnings("unchecked")
-	private <T> Patch applyAndDiff(Patch patch, Object target, PersistenceCallback<T> persistenceCallback) {
-		DiffSync<T> sync = new DiffSync<T>(shadowStore, persistenceCallback.getEntityType());
+	private <T> Patch applyAndDiff(Patch patch, Object target, PersistenceCallback<T> persistenceCallback) throws PatchException {
+		DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
 		T patched = sync.apply((T) target, patch);
 		persistenceCallback.persistChange(patched);
 		return sync.diff(patched);
 	}
 	
-	private <T> Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) {
-		DiffSync<T> sync = new DiffSync<T>(shadowStore, persistenceCallback.getEntityType());
+	private <T> Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
+		DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
 		
 		List<T> patched = sync.apply(target, patch);
 
-		List<T> itemsToSave = new ArrayList<T>(patched);
+		List<T> itemsToSave = new ArrayList<>(patched);
 		itemsToSave.removeAll(target);
 
 		// Determine which items should be deleted.
 		// Make a shallow copy of the target, remove items that are equivalent to items in the working copy.
 		// Equivalent is not the same as equals. It means "this is the same resource, even if it has changed".
 		// It usually means "are the id properties equals".
-		List<T> itemsToDelete = new ArrayList<T>(target);
-		for (T candidate : target) {
+		List<T> itemsToDelete = new ArrayList<>(target);
+		target.forEach(candidate -> {
 			for (T item : patched) {
 				if (equivalency.isEquivalent(candidate, item)) {
 					itemsToDelete.remove(candidate);
 					break;
 				}
 			}
-		}
+		});
 		persistenceCallback.persistChanges(itemsToSave, itemsToDelete);
 		
 		return sync.diff(patched);

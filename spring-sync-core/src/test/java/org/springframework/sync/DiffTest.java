@@ -236,7 +236,7 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(0L, value.getId().longValue());
 		assertEquals("Z", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 	}
 
 	@Test
@@ -255,14 +255,14 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(26L, value.getId().longValue());
 		assertEquals("Z", value.getDescription());
-		assertEquals(true, value.isComplete());
+		assertTrue(value.isComplete());
 		op = ops.get(1);
 		assertEquals("add", op.getOp());
 		assertEquals("/1", op.getPath());
 		value = (Todo) op.getValue();
 		assertEquals(25L, value.getId().longValue());
 		assertEquals("Y", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 	}
 
 	@Test
@@ -280,7 +280,7 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(0L, value.getId().longValue());
 		assertEquals("Z", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 	}
 	
 	@Test
@@ -299,16 +299,17 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(26L, value.getId().longValue());
 		assertEquals("Z", value.getDescription());
-		assertEquals(true, value.isComplete());
+		assertTrue(value.isComplete());
 		op = ops.get(1);
 		assertEquals("add", op.getOp());
 		assertEquals("/3", op.getPath());
 		value = (Todo) op.getValue();
 		assertEquals(25L, value.getId().longValue());
 		assertEquals("Y", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 	}
-	
+
+	@Test
 	public void insertItemAtEndOfList() throws Exception {
 		List<Todo> original = buildTodoList();
 		List<Todo> modified = buildTodoList();
@@ -323,7 +324,7 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(0L, value.getId().longValue());
 		assertEquals("Z", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 	}
 	
 	@Test
@@ -342,14 +343,14 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(25L, value.getId().longValue());
 		assertEquals("Y", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 		op = ops.get(1);
 		assertEquals("add", op.getOp());
 		assertEquals("/4", op.getPath());
 		value = (Todo) op.getValue();
 		assertEquals(26L, value.getId().longValue());
 		assertEquals("Z", value.getDescription());
-		assertEquals(true, value.isComplete());
+		assertTrue(value.isComplete());
 	}
 
 	@Test
@@ -368,14 +369,14 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(25L, value.getId().longValue());
 		assertEquals("Y", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 		op = ops.get(1);
 		assertEquals("add", op.getOp());
 		assertEquals("/4", op.getPath());
 		value = (Todo) op.getValue();
 		assertEquals(26L, value.getId().longValue());
 		assertEquals("Z", value.getDescription());
-		assertEquals(true, value.isComplete());
+		assertTrue(value.isComplete());
 	}
 	
 	@Test
@@ -394,7 +395,7 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(1L, value.getId().longValue());
 		assertEquals("A", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 		op = ops.get(1);
 		assertEquals("remove", op.getOp());
 		assertEquals("/0", op.getPath());
@@ -415,7 +416,7 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(2L, value.getId().longValue());
 		assertEquals("B", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 		op = ops.get(1);
 		assertEquals("remove", op.getOp());
 		assertEquals("/1", op.getPath());
@@ -436,7 +437,7 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(3L, value.getId().longValue());
 		assertEquals("C", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 		op = ops.get(1);
 		assertEquals("remove", op.getOp());
 		assertEquals("/2", op.getPath());
@@ -459,7 +460,7 @@ public class DiffTest {
 		Todo value = (Todo) op.getValue();
 		assertEquals(1L, value.getId().longValue());
 		assertEquals("A", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 		op = ops.get(1);
 		assertEquals("remove", op.getOp());
 		assertEquals("/0", op.getPath());
@@ -469,7 +470,7 @@ public class DiffTest {
 		value = (Todo) op.getValue();
 		assertEquals(2L, value.getId().longValue());
 		assertEquals("B", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 		op = ops.get(3);
 		assertEquals("remove", op.getOp());
 		assertEquals("/0", op.getPath());
@@ -479,7 +480,7 @@ public class DiffTest {
 		value = (Todo) op.getValue();
 		assertEquals(3L, value.getId().longValue());
 		assertEquals("C", value.getDescription());
-		assertEquals(false, value.isComplete());
+		assertFalse(value.isComplete());
 		op = ops.get(5);
 		assertEquals("remove", op.getOp());
 		assertEquals("/0", op.getPath());
@@ -487,14 +488,14 @@ public class DiffTest {
 
 	@Test
 	public void addEntryToListProperty() throws Exception {
-		ArrayList<Todo> todos = new ArrayList<Todo>();
+		ArrayList<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		TodoList before = new TodoList();
 		before.setTodos(todos);
 		
-		todos = new ArrayList<Todo>();
+		todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
@@ -512,14 +513,14 @@ public class DiffTest {
 
 	@Test
 	public void removeEntryFromListProperty() throws Exception {
-		ArrayList<Todo> todos = new ArrayList<Todo>();
+		ArrayList<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		TodoList before = new TodoList();
 		before.setTodos(todos);
 		
-		todos = new ArrayList<Todo>();
+		todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(3L, "C", false));
 		TodoList after = new TodoList();
@@ -537,14 +538,14 @@ public class DiffTest {
 
 	@Test
 	public void editEntryInListProperty() throws Exception {
-		ArrayList<Todo> todos = new ArrayList<Todo>();
+		ArrayList<Todo> todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		TodoList before = new TodoList();
 		before.setTodos(todos);
 		
-		todos = new ArrayList<Todo>();
+		todos = new ArrayList<>();
 		todos.add(new Todo(1L, "A", false));
 		todos.add(new Todo(2L, "BBB", true));
 		todos.add(new Todo(3L, "C", false));
@@ -653,7 +654,7 @@ public class DiffTest {
 
 	
 	private List<Todo> buildTodoList() {
-		List<Todo> original = new ArrayList<Todo>();
+		List<Todo> original = new ArrayList<>();
 		original.add(new Todo(1L, "A", false));
 		original.add(new Todo(2L, "B", false));
 		original.add(new Todo(3L, "C", false));

@@ -15,11 +15,6 @@
  */
 package org.springframework.sync.diffsync.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.http.HttpSession;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,27 +28,34 @@ import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.util.Assert;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Configuration adapter for Differential Synchronization in Spring.
  * @author Craig Walls
  */
 @Configuration
-public class DifferentialSynchronizationRegistrar extends WebMvcConfigurerAdapter {
+public class DifferentialSynchronizationRegistrar implements WebMvcConfigurer {
+
+	private static final String DIFF_SYNC_CONFIGURERS_MSG = "At least one configuration class must implement DiffSyncConfigurer";
 
 	private List<DiffSyncConfigurer> diffSyncConfigurers;
 
 	@Override
 	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
-		List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
+		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
 		messageConverters.add(new MappingJackson2HttpMessageConverter());
 	}
 
 	@Autowired
 	public void setDiffSyncConfigurers(List<DiffSyncConfigurer> diffSyncConfigurers) {
-		Assert.notNull(diffSyncConfigurers, "At least one configuration class must implement DiffSyncConfigurer");
-		Assert.notEmpty(diffSyncConfigurers, "At least one configuration class must implement DiffSyncConfigurer");
+		Assert.notNull(diffSyncConfigurers, DIFF_SYNC_CONFIGURERS_MSG);
+		Assert.notEmpty(diffSyncConfigurers, DIFF_SYNC_CONFIGURERS_MSG);
 		this.diffSyncConfigurers = diffSyncConfigurers;
 	}
 		
@@ -62,7 +64,7 @@ public class DifferentialSynchronizationRegistrar extends WebMvcConfigurerAdapte
 	public ShadowStore shadowStore(HttpSession session) {
 		for (DiffSyncConfigurer diffSyncConfigurer : diffSyncConfigurers) {
 			ShadowStore shadowStore = diffSyncConfigurer.getShadowStore(session.getId());
-			if (shadowStore != null) {
+			if (Objects.nonNull(shadowStore)) {
 				return shadowStore;
 			}
 		}
@@ -72,9 +74,7 @@ public class DifferentialSynchronizationRegistrar extends WebMvcConfigurerAdapte
 	@Bean
 	public PersistenceCallbackRegistry persistenceCallbackRegistry() {
 		PersistenceCallbackRegistry registry = new PersistenceCallbackRegistry();
-		for (DiffSyncConfigurer diffSyncConfigurer : diffSyncConfigurers) {
-			diffSyncConfigurer.addPersistenceCallbacks(registry);
-		}
+		diffSyncConfigurers.forEach(diffSyncConfigurer -> diffSyncConfigurer.addPersistenceCallbacks(registry));
 		return registry;
 	}
 	
