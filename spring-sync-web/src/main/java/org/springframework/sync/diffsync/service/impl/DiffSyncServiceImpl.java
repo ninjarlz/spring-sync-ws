@@ -29,7 +29,7 @@ public class DiffSyncServiceImpl implements DiffSyncService {
         return sync.diff(patched);
     }
 
-    public <T>  Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
+    public <T> Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
         DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
 
         List<T> patched = sync.apply(target, patch);
