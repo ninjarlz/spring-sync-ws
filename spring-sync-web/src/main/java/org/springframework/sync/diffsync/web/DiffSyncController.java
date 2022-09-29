@@ -15,102 +15,59 @@
  */
 package org.springframework.sync.diffsync.web;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.sync.Patch;
 import org.springframework.sync.PatchException;
-import org.springframework.sync.diffsync.DiffSync;
-import org.springframework.sync.diffsync.Equivalency;
-import org.springframework.sync.diffsync.IdPropertyEquivalency;
-import org.springframework.sync.diffsync.PersistenceCallback;
-import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
-import org.springframework.sync.diffsync.ShadowStore;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.sync.diffsync.*;
+import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Controller to handle PATCH requests an apply them to resources using {@link DiffSync}.
+ * Controller to handle PATCH requests and apply them to resources using {@link DiffSync}.
  * @author Craig Walls
  */
 @RestController
 public class DiffSyncController {
-	
-	private final ShadowStore shadowStore;
+
+	private static final String UNABLE_TO_APPLY_PATCH_MSG = "Unable to apply patch - %s";
 
 	private final PersistenceCallbackRegistry callbackRegistry;
-	
-	private final Equivalency equivalency = new IdPropertyEquivalency();
+	private final DiffSyncService diffSyncService;
 
 	@Autowired
-	public DiffSyncController(PersistenceCallbackRegistry callbackRegistry, ShadowStore shadowStore) {
+	public DiffSyncController(PersistenceCallbackRegistry callbackRegistry, DiffSyncService diffSyncService) {
 		this.callbackRegistry = callbackRegistry;
-		this.shadowStore = shadowStore;
+		this.diffSyncService = diffSyncService;
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({"unchecked", "rawtypes"})
 	@RequestMapping(
 			value="${spring.diffsync.path:}/{resource}",
 			method=RequestMethod.PATCH)
-	public Patch patch(@PathVariable("resource") String resource, @RequestBody Patch patch) throws PatchException {
-		PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);		
-		return applyAndDiffAgainstList(patch, (List) persistenceCallback.findAll(), persistenceCallback);
+	public Patch patch(@PathVariable("resource") String resource, @RequestBody Patch patch) {
+		try {
+			PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
+			return diffSyncService.applyAndDiffAgainstList(patch, (List) persistenceCallback.findAll(), persistenceCallback);
+		} catch (PatchException e) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
+		}
 	}
 
 	@RequestMapping(
 			value="${spring.diffsync.path:}/{resource}/{id}",
 			method=RequestMethod.PATCH)
-	public Patch patch(@PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) throws PatchException {
-		PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);		
-		Object findOne = persistenceCallback.findOne(id);
-		return applyAndDiff(patch, findOne, persistenceCallback);
+	public Patch patch(@PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) {
+		try {
+			PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
+			Object findOne = persistenceCallback.findOne(id);
+			return diffSyncService.applyAndDiff(patch, findOne, persistenceCallback);
+		} catch (PatchException e) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
+		}
 	}
-
-	
-	@ExceptionHandler(PatchException.class)
-	@ResponseStatus(value=HttpStatus.CONFLICT, reason="Unable to apply patch")
-	public void handlePatchException(PatchException e) {}
-	
-	
-	@SuppressWarnings("unchecked")
-	private <T> Patch applyAndDiff(Patch patch, Object target, PersistenceCallback<T> persistenceCallback) throws PatchException {
-		DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
-		T patched = sync.apply((T) target, patch);
-		persistenceCallback.persistChange(patched);
-		return sync.diff(patched);
-	}
-	
-	private <T> Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
-		DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
-		
-		List<T> patched = sync.apply(target, patch);
-
-		List<T> itemsToSave = new ArrayList<>(patched);
-		itemsToSave.removeAll(target);
-
-		// Determine which items should be deleted.
-		// Make a shallow copy of the target, remove items that are equivalent to items in the working copy.
-		// Equivalent is not the same as equals. It means "this is the same resource, even if it has changed".
-		// It usually means "are the id properties equals".
-		List<T> itemsToDelete = new ArrayList<>(target);
-		target.forEach(candidate -> {
-			for (T item : patched) {
-				if (equivalency.isEquivalent(candidate, item)) {
-					itemsToDelete.remove(candidate);
-					break;
-				}
-			}
-		});
-		persistenceCallback.persistChanges(itemsToSave, itemsToDelete);
-		
-		return sync.diff(patched);
-	}
-
 }

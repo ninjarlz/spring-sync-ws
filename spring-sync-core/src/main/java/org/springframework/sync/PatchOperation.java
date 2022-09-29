@@ -101,7 +101,7 @@ public abstract class PatchOperation {
 		Integer listIndex = targetListIndex(removePath);
 		Expression expression = pathToExpression(removePath);
 		Object value = expression.getValue(target);
-		if (listIndex == null) {
+		if (Objects.isNull(listIndex)) {
 			try {
 				expression.setValue(target, null);
 				return value;

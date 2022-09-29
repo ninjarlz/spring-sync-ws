@@ -24,6 +24,8 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.ShadowStore;
+import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.util.Assert;
@@ -77,10 +79,15 @@ public class DifferentialSynchronizationRegistrar implements WebMvcConfigurer {
 		diffSyncConfigurers.forEach(diffSyncConfigurer -> diffSyncConfigurer.addPersistenceCallbacks(registry));
 		return registry;
 	}
+
+	@Bean
+	public DiffSyncService diffSyncService(ShadowStore shadowStore) {
+		return new DiffSyncServiceImpl(shadowStore);
+	}
 	
 	@Bean
-	public DiffSyncController diffSyncController(PersistenceCallbackRegistry callbackRegistry, ShadowStore shadowStore) {
-		return new DiffSyncController(callbackRegistry, shadowStore);
+	public DiffSyncController diffSyncController(PersistenceCallbackRegistry callbackRegistry, DiffSyncService diffSyncService) {
+		return new DiffSyncController(callbackRegistry, diffSyncService);
 	}
 
 }

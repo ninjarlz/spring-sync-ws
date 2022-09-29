@@ -37,6 +37,8 @@ import org.springframework.sync.TodoRepository;
 import org.springframework.sync.diffsync.EmbeddedDataSourceConfig;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.ShadowStore;
+import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -416,16 +418,16 @@ public class DiffSyncControllerTest {
 	}
 
 	private MockMvc mockMvc(TodoRepository todoRepository) {
-		ShadowStore shadowStore = new MapBasedShadowStore("x");
-		
 		PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
-		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<Todo>(todoRepository, entityManager, Todo.class));
-		
-		DiffSyncController controller = new DiffSyncController(callbackRegistry, shadowStore);
-		MockMvc mvc = standaloneSetup(controller)
+		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, entityManager, Todo.class));
+
+		ShadowStore shadowStore = new MapBasedShadowStore("x");
+		DiffSyncService diffSyncService = new DiffSyncServiceImpl(shadowStore);
+
+		DiffSyncController controller = new DiffSyncController(callbackRegistry, diffSyncService);
+		return standaloneSetup(controller)
 				.setMessageConverters(new JsonPatchHttpMessageConverter())
 				.build();
-		return mvc;
 	}
 	
 }

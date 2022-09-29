@@ -208,6 +208,8 @@ project('spring-sync-web') {
 	dependencies {
 		implementation(project(":spring-sync-core"))
 		implementation("org.springframework:spring-webmvc:${springVersion}")
+		implementation("org.springframework:spring-websocket:${springVersion}")
+		implementation("org.springframework:spring-messaging:${springVersion}")
 		implementation "javax.servlet:javax.servlet-api:${servletApiVersion}", optional
 		implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}", optional
 		testImplementation("org.hibernate:hibernate-entitymanager:${hibernateVersion}")
