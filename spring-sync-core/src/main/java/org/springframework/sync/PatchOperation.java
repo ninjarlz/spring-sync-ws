@@ -15,6 +15,12 @@
  */
 package org.springframework.sync;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import lombok.Builder;
+import lombok.Getter;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionException;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -31,6 +37,18 @@ import static org.springframework.sync.PathToSpEL.pathToParentExpression;
  * 
  * @author Craig Walls
  */
+@JsonTypeInfo(
+		use = JsonTypeInfo.Id.NAME,
+		property = PatchOperation.OP_ENTRY,
+		visible = true)
+@JsonSubTypes({
+		@JsonSubTypes.Type(value = AddOperation.class, name = AddOperation.OP_TYPE),
+		@JsonSubTypes.Type(value = CopyOperation.class, name = CopyOperation.OP_TYPE),
+		@JsonSubTypes.Type(value = MoveOperation.class, name = MoveOperation.OP_TYPE),
+		@JsonSubTypes.Type(value = RemoveOperation.class, name = RemoveOperation.OP_TYPE),
+		@JsonSubTypes.Type(value = ReplaceOperation.class, name = ReplaceOperation.OP_TYPE),
+		@JsonSubTypes.Type(value = TestOperation.class, name = TestOperation.OP_TYPE),
+})
 public abstract class PatchOperation {
 
 	public static final String PATH_ENTRY = "path";
@@ -40,10 +58,13 @@ public abstract class PatchOperation {
 	private static final String PATH_NOT_NULLABLE_MSG = "Path '%s' is not nullable.";
 	private static final String UNABLE_TO_GET_VALUE_MSG = "Unable to get value from target";
 
+	@Getter
 	protected final String op;
-	
+
+	@Getter
 	protected final String path;
-		
+
+	@Getter
 	protected final Object value;
 	
 	protected final Expression spelExpression;
@@ -53,7 +74,8 @@ public abstract class PatchOperation {
 	 * @param op the operation name. (e.g., 'move')
 	 * @param path the path to perform the operation on. (e.g., '/1/description')
 	 */
-	public PatchOperation(String op, String path) {
+	@JsonCreator
+	public PatchOperation(@JsonProperty("op") String op, @JsonProperty("path") String path) {
 		this(op, path, null);
 	}
 	
@@ -63,34 +85,14 @@ public abstract class PatchOperation {
 	 * @param path the path to perform the operation on. (e.g., '/1/description')
 	 * @param value the value to apply in the operation. Could be an actual value or an implementation of {@link LateObjectEvaluator}.
 	 */
-	public PatchOperation(String op, String path, Object value) {
+	@JsonCreator
+	public PatchOperation(@JsonProperty("op") String op, @JsonProperty("path") String path, @JsonProperty("value") Object value) {
 		this.op = op;
 		this.path = path;
 		this.value = value;
 		this.spelExpression = pathToExpression(path);
 	}
-	
-	/**
-	 * @return the operation name
-	 */
-	public String getOp() {
-		return op;
-	}
-	
-	/**
-	 * @return the operation path
-	 */
-	public String getPath() {
-		return path;
-	}
-	
-	/**
-	 * @return the operation's value (or {@link LateObjectEvaluator})
-	 */
-	public Object getValue() {
-		return value;
-	}
-	
+
 	/**
 	 * Pops a value from the given path.
 	 * @param target the target from which to pop a value.

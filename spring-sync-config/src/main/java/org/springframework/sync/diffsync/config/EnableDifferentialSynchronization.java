@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Import;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@Import(DifferentialSynchronizationRegistrar.class)
+@Import({DifferentialSynchronizationRegistrar.class, WebSocketConfig.class})
 public @interface EnableDifferentialSynchronization {
 
 }

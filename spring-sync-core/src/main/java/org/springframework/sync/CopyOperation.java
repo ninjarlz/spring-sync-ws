@@ -52,6 +52,7 @@ public class CopyOperation extends FromOperation {
 	 * @param path The path to copy the source value to. (e.g., '/foo/bar/4')
 	 * @param from The source path from which a value will be copied. (e.g., '/foo/bar/5')
 	 */
+
 	public CopyOperation(String path, String from) {
 		super(OP_TYPE, path, from);
 	}

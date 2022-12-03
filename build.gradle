@@ -160,6 +160,8 @@ project('spring-sync-config') {
 		implementation("org.springframework:spring-core:${springVersion}")
 		implementation("org.springframework:spring-context:${springVersion}")
 		implementation("org.springframework:spring-webmvc:${springVersion}")
+		implementation("org.springframework:spring-websocket:${springVersion}")
+		implementation("org.springframework:spring-messaging:${springVersion}")
 		implementation "javax.servlet:javax.servlet-api:${servletApiVersion}", optional
 	}
 }

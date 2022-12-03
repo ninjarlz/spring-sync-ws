@@ -15,8 +15,12 @@
  */
 package org.springframework.sync;
 
+import java.io.Serializable;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 import org.springframework.sync.util.DeepCloneUtils;
 
 /**
@@ -29,11 +33,13 @@ import org.springframework.sync.util.DeepCloneUtils;
  * 
  * @author Craig Walls
  */
-public class Patch {
+public class Patch implements Serializable {
 
+	@Getter
 	private final List<PatchOperation> operations;
 
-	public Patch(List<PatchOperation> operations) {
+	@JsonCreator
+	public Patch(@JsonProperty("operations") List<PatchOperation> operations) {
 		this.operations = operations;
 	}
 	
@@ -43,11 +49,7 @@ public class Patch {
 	public int size() {
 		return operations.size();
 	}
-	
-	public List<PatchOperation> getOperations() {
-		return operations;
-	}
-	
+
 	/**
 	 * Applies the Patch to a given Object graph. Makes a copy of the given object so that it will remain unchanged after application of the patch
 	 * and in case any errors occur while performing the patch.
