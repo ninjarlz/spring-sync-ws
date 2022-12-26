@@ -1,0 +1,175 @@
+/*
+ * Copyright 2014 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.springframework.sync.diffsync.web.websocket;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.sync.Patch;
+import org.springframework.sync.PatchOperation;
+import org.springframework.sync.Todo;
+import org.springframework.sync.TodoRepository;
+import org.springframework.sync.diffsync.EmbeddedDataSourceConfig;
+import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
+import org.springframework.sync.diffsync.ShadowStore;
+import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
+import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
+import org.springframework.sync.diffsync.web.DiffSyncController;
+import org.springframework.sync.diffsync.web.JpaPersistenceCallback;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes = {EmbeddedDataSourceConfig.class})
+@EnableScheduling
+@EnableWebSocketMessageBroker
+@Transactional
+@Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+public class DiffSyncControllerWebSocketTest {
+
+    private static final String RESOURCE_PATH = "/todos";
+    private static final String APP_WEBSOCKET_RESOURCE_PATH = "/app" + RESOURCE_PATH;
+    private static final String TOPIC_WEBSOCKET_RESOURCE_PATH = "/topic" + RESOURCE_PATH;
+    private static final String WEBSOCKET_SESSION_ID = "0";
+
+    @PersistenceContext
+    private EntityManager entityManager;
+    @Autowired
+    private TodoRepository repository;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final MediaType JSON_PATCH = new MediaType("application", "json-patch+json");
+
+    //
+    // entity patching
+    //
+
+    @Test
+    public void patchSendsEntityStatusChangeWebSocket() throws Exception {
+        TodoRepository todoRepository = todoRepository();
+        MockWebSocket mockWebSocket = mockWebSocket(todoRepository);
+
+        StompHeaderAccessor sendHeaders = buildStompHeaderAccessor(APP_WEBSOCKET_RESOURCE_PATH + "/2");
+        Message<byte[]> sendMessage = MessageBuilder
+                .withPayload(bytePatchResource("patch-change-entity-status"))
+                .setHeaders(sendHeaders)
+                .build();
+        mockWebSocket.handleMessage(sendMessage);
+
+        assertEquals(1, mockWebSocket.getBrokerChannel().getMessages().size());
+        Message<?> reply = mockWebSocket.getBrokerChannel().getMessages().get(0);
+        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
+        assertEquals(WEBSOCKET_SESSION_ID, replyHeaders.getSessionId());
+        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
+        String json = new String(MAPPER.writeValueAsBytes(reply.getPayload()), StandardCharsets.UTF_8);
+        JsonNode jsonNode = MAPPER.readTree(json);
+        assertTrue(jsonNode.get("operations").isEmpty());
+
+        List<Todo> all = (List<Todo>) repository.findAll();
+        assertEquals(3, all.size());
+        assertEquals(new Todo(1L, "A", false), all.get(0));
+        assertEquals(new Todo(2L, "B", true), all.get(1));
+        assertEquals(new Todo(3L, "C", false), all.get(2));
+    }
+
+    @Test
+    public void patchSendsEntityDescriptionChangeWebSocket() throws Exception {
+        TodoRepository todoRepository = todoRepository();
+        MockWebSocket mockWebSocket = mockWebSocket(todoRepository);
+
+        StompHeaderAccessor sendHeaders = buildStompHeaderAccessor(APP_WEBSOCKET_RESOURCE_PATH + "/2");
+        Message<byte[]> sendMessage = MessageBuilder
+                .withPayload(bytePatchResource("patch-change-entity-description"))
+                .setHeaders(sendHeaders)
+                .build();
+        mockWebSocket.handleMessage(sendMessage);
+
+        assertEquals(1, mockWebSocket.getBrokerChannel().getMessages().size());
+        Message<?> reply = mockWebSocket.getBrokerChannel().getMessages().get(0);
+        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
+        assertEquals(WEBSOCKET_SESSION_ID, replyHeaders.getSessionId());
+        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
+        String json = new String(MAPPER.writeValueAsBytes(reply.getPayload()), StandardCharsets.UTF_8);
+        JsonNode jsonNode = MAPPER.readTree(json);
+        assertTrue(jsonNode.get("operations").isEmpty());
+
+        List<Todo> all = (List<Todo>) repository.findAll();
+        assertEquals(3, all.size());
+        assertEquals(new Todo(1L, "A", false), all.get(0));
+        assertEquals(new Todo(2L, "BBB", false), all.get(1));
+        assertEquals(new Todo(3L, "C", false), all.get(2));
+    }
+
+    //
+    // private helpers
+    //
+
+    private byte[] bytePatchResource(String name) throws IOException {
+        ClassPathResource resource = new ClassPathResource("/org/springframework/sync/json-payloads/" + name + ".json");
+        List<PatchOperation> patchOperations = MAPPER.readValue(resource.getInputStream(), new TypeReference<>() {});
+        return MAPPER.writeValueAsBytes(new Patch(patchOperations));
+    }
+
+    private TodoRepository todoRepository() {
+        return repository;
+    }
+
+    private DiffSyncController diffSyncController(TodoRepository todoRepository) {
+        PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
+        callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, entityManager, Todo.class));
+        ShadowStore shadowStore = new MapBasedShadowStore("x");
+        DiffSyncService diffSyncService = new DiffSyncServiceImpl(shadowStore);
+        return new DiffSyncController(callbackRegistry, diffSyncService);
+    }
+
+    private MockWebSocket mockWebSocket(TodoRepository todoRepository) {
+        DiffSyncController diffSyncController = diffSyncController(todoRepository);
+        return new MockWebSocket(diffSyncController);
+    }
+
+    private StompHeaderAccessor buildStompHeaderAccessor(String destination) {
+        StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
+        headers.setDestination(destination);
+        headers.setSessionId(WEBSOCKET_SESSION_ID);
+        headers.setSessionAttributes(Collections.emptyMap());
+        headers.setContentType(JSON_PATCH);
+        return headers;
+    }
+}

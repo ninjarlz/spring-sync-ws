@@ -15,27 +15,17 @@
  */
 package org.springframework.sync.json;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-
-import org.springframework.sync.AddOperation;
-import org.springframework.sync.CopyOperation;
-import org.springframework.sync.FromOperation;
-import org.springframework.sync.MoveOperation;
-import org.springframework.sync.Patch;
-import org.springframework.sync.PatchException;
-import org.springframework.sync.PatchOperation;
-import org.springframework.sync.RemoveOperation;
-import org.springframework.sync.ReplaceOperation;
-import org.springframework.sync.TestOperation;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.sync.*;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Convert {@link JsonNode}s containing JSON Patch to/from {@link Patch} objects.

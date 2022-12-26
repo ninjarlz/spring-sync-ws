@@ -15,10 +15,10 @@
  */
 package org.springframework.sync;
 
-import java.lang.reflect.Array;
-
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+
+import java.lang.reflect.Array;
 
 /**
  * Utilities for converting patch paths to/from SpEL expressions.

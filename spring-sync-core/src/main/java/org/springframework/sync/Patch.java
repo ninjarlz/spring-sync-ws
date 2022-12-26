@@ -15,13 +15,13 @@
  */
 package org.springframework.sync;
 
-import java.io.Serializable;
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import org.springframework.sync.util.DeepCloneUtils;
+
+import java.io.Serializable;
+import java.util.List;
 
 /**
  * <p>Represents a Patch.</p>

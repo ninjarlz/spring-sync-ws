@@ -15,7 +15,7 @@
  */
 package org.springframework.sync.diffsync;
 
-import org.hibernate.dialect.H2Dialect;
+import org.hibernate.dialect.MySQL8Dialect;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -39,12 +39,13 @@ public class EmbeddedDataSourceConfig {
 	public DataSource dataSource() {
 		return new EmbeddedDatabaseBuilder()
 			.setType(EmbeddedDatabaseType.H2)
-			.addScript("classpath:/org/springframework/sync/testdb.sql").build();
+			.setName("testdb;DATABASE_TO_UPPER=false;MODE=MYSQL")
+			.addScript("classpath:/org/springframework/sync/db-scripts/testdb.sql").build();
 	}
 
 	@Bean
 	public Map<String, Object> jpaProperties() {
-		return Map.of("hibernate.dialect", H2Dialect.class.getName());
+		return Map.of("hibernate.dialect", MySQL8Dialect.class.getName());
 	}
 
 	@Bean

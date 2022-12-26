@@ -15,10 +15,10 @@
  */
 package org.springframework.sync.diffsync;
 
+import org.springframework.sync.Patch;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import org.springframework.sync.Patch;
 
 /**
  * Registry for looking up {@link PersistenceCallback}s to be used in the course of applying a {@link Patch} via

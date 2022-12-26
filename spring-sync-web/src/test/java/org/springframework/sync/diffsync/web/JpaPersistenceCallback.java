@@ -15,18 +15,16 @@
  */
 package org.springframework.sync.diffsync.web;
 
-import java.util.List;
-import java.util.NoSuchElementException;
-
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.sync.diffsync.PersistenceCallback;
 
 import javax.persistence.EntityManager;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 @RequiredArgsConstructor
-class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
+public class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
 	
 	private final CrudRepository<T, Long> repo;
 	private final EntityManager entityManager;
@@ -46,6 +44,7 @@ class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
 	public void persistChange(T itemToSave) {
 		repo.save(itemToSave);
 		entityManager.flush();
+		entityManager.clear();
 	}
 	
 	@Override
@@ -53,6 +52,7 @@ class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
 		repo.saveAll(itemsToSave);
 		repo.deleteAll(itemsToDelete);
 		entityManager.flush();
+		entityManager.clear();
 	}
 
 	@Override

@@ -15,9 +15,8 @@
  */
 package org.springframework.sync.json;
 
-import org.springframework.sync.Patch;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.sync.Patch;
 import org.springframework.sync.PatchException;
 
 /**

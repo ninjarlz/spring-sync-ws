@@ -15,7 +15,7 @@
  */
 package org.springframework.sync;
 
-import static org.springframework.sync.PathToSpEL.*;
+import static org.springframework.sync.PathToSpEL.pathToExpression;
 
 /**
  * <p>

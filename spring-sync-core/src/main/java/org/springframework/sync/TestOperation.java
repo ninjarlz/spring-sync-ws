@@ -15,15 +15,12 @@
  */
 package org.springframework.sync;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
 import org.springframework.util.ObjectUtils;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * <p>Operation to test values on a given target.</p>

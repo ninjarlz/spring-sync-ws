@@ -15,19 +15,18 @@
  */
 package org.springframework.sync;
 
+import difflib.Delta;
+import difflib.Delta.TYPE;
+import difflib.DiffUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.ObjectUtils;
+
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.ObjectUtils;
-
-import difflib.Delta;
-import difflib.Delta.TYPE;
-import difflib.DiffUtils;
 
 /**
  * Provides support for producing a {@link Patch} from the comparison of two objects.

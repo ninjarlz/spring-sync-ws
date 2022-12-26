@@ -54,8 +54,6 @@ public class DiffSyncController {
     @RequestMapping(
             value = "${spring.diffsync.path:}/{resource}",
             method = RequestMethod.PATCH)
-    @MessageMapping("/{resource}")
-    @SendTo("/topic/{resource}")
     public Patch patch(@PathVariable("resource") String resource, @RequestBody Patch patch) {
         try {
             PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
@@ -76,6 +74,12 @@ public class DiffSyncController {
         } catch (PatchException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
         }
+    }
+
+    @MessageMapping("/{resource}")
+    @SendTo("/topic/{resource}")
+    public Patch patchWs(@DestinationVariable("resource") String resource, Patch patch) {
+        return patch(resource, patch);
     }
 
     @MessageMapping("/{resource}/{id}")

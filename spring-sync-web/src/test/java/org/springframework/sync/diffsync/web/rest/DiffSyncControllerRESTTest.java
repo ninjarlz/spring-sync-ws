@@ -13,24 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.sync.diffsync.web;
+package org.springframework.sync.diffsync.web.rest;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.simp.stomp.StompCommand;
-import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.sync.Patch;
-import org.springframework.sync.PatchOperation;
 import org.springframework.sync.Todo;
 import org.springframework.sync.TodoRepository;
 import org.springframework.sync.diffsync.EmbeddedDataSourceConfig;
@@ -39,25 +29,24 @@ import org.springframework.sync.diffsync.ShadowStore;
 import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
-import org.springframework.sync.diffsync.web.websocket.MockWebSocket;
+import org.springframework.sync.diffsync.web.DiffSyncController;
+import org.springframework.sync.diffsync.web.JpaPersistenceCallback;
+import org.springframework.sync.diffsync.web.JsonPatchHttpMessageConverter;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
-import org.springframework.web.util.NestedServletException;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -68,23 +57,20 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 @EnableScheduling
 @EnableWebSocketMessageBroker
 @Transactional
-public class DiffSyncControllerTest {
+@Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+public class DiffSyncControllerRESTTest {
 
 	private static final String RESOURCE_PATH = "/todos";
-	private static final String APP_WEBSOCKET_PATH = "/app" + RESOURCE_PATH;
-	private static final String TOPIC_WEBSOCKET_PATH = "/topic" + RESOURCE_PATH;
-	private static final String WEBSOCKET_SESSION_ID = "0";
 
 	@PersistenceContext
 	private EntityManager entityManager;
 	@Autowired
 	private TodoRepository repository;
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final MediaType JSON_PATCH = new MediaType("application", "json-patch+json");
 
 	//
-	// entity patching REST
+	// entity patching
 	//
 
 	@Test
@@ -130,19 +116,29 @@ public class DiffSyncControllerTest {
 	}
 
 	@Test
-	public void patchSendsEntityIdChange() {
+	public void patchSendsEntityIdChange() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 
-		Exception e = assertThrows(NestedServletException.class, () -> mvc.perform(patch(RESOURCE_PATH + "/2")
+		mvc.perform(
+						patch(RESOURCE_PATH + "/2")
 								.content(resource("patch-change-entity-id"))
 								.accept(JSON_PATCH)
-								.contentType(JSON_PATCH)));
-		assertTrue(e.getCause() instanceof PersistenceException);
-}
+								.contentType(JSON_PATCH))
+				.andExpect(status().isOk())
+				.andExpect(content().string("[]"))
+				.andExpect(content().contentType(JSON_PATCH));
+
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(4, all.size());
+		assertEquals(new Todo(1L, "A", false), all.get(0));
+		assertEquals(new Todo(2L, "B", false), all.get(1));
+		assertEquals(new Todo(3L, "C", false), all.get(2));
+		assertEquals(new Todo(4L, "B", false), all.get(3)); // This is odd behavior, but correct in the context of the backing database.
+	}
 
 	//
-	// list patching
+	// list patching REST
 	//
 
 	@Test
@@ -230,7 +226,6 @@ public class DiffSyncControllerTest {
 	}
 
 	@Test
-	@Ignore
 	public void patchAddsAnItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
@@ -249,7 +244,7 @@ public class DiffSyncControllerTest {
 		assertEquals(all.get(0), new Todo(1L, "A", false));
 		assertEquals(all.get(1), new Todo(2L, "B", false));
 		assertEquals(all.get(2), new Todo(3L, "C", false));
-		assertEquals(all.get(2), new Todo(4L, "D", false));
+		assertEquals(all.get(3), new Todo(4L, "D", false));
 	}
 
 	@Test
@@ -351,11 +346,10 @@ public class DiffSyncControllerTest {
 	}
 
 	//
-	// server-side changes REST
+	// server-side changes
 	//
 
 	@Test
-	@Ignore
 	public void noChangesFromClientSide_itemDeletedFromServer() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
@@ -380,7 +374,6 @@ public class DiffSyncControllerTest {
 	}
 
 	@Test
-	@Ignore
 	public void statusChangedOnClient_itemDeletedFromServer() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
@@ -390,51 +383,18 @@ public class DiffSyncControllerTest {
 		repository.deleteById(2L);
 
 		mvc.perform(
-				patch(RESOURCE_PATH)
-				.content(resource("patch-change-single-status"))
-				.accept(JSON_PATCH)
-				.contentType(JSON_PATCH))
-			.andExpect(content().string(resource("patch-remove-completed-item")))
-			.andExpect(content().contentType(JSON_PATCH))
-			.andExpect(status().isOk());
+						patch(RESOURCE_PATH)
+								.content(resource("patch-change-single-status"))
+								.accept(JSON_PATCH)
+								.contentType(JSON_PATCH))
+				.andExpect(content().string(resource("patch-remove-completed-item")))
+				.andExpect(content().contentType(JSON_PATCH))
+				.andExpect(status().isOk());
 
 		List<Todo> all = (List<Todo>) repository.findAll();
 		assertEquals(2, all.size());
 		assertEquals(new Todo(1L, "A", false), all.get(0));
-		assertEquals(new Todo(3L, "C", false), all.get(1));
-	}
-
-	//
-	// entity patching WebSocket
-	//
-
-	@Test
-	public void patchSendsEntityStatusChangeWebSocket() throws Exception {
-        TodoRepository todoRepository = todoRepository();
-		MockWebSocket mockWebSocket = mockWebSocket(todoRepository);
-
-		StompHeaderAccessor sendHeaders = buildStompHeaderAccessor(APP_WEBSOCKET_PATH + "/2", StompCommand.SEND);
-		sendHeaders.setContentType(JSON_PATCH);
-        Message<byte[]> sendMessage = MessageBuilder
-                .withPayload(patchByteResource("patch-change-entity-status"))
-                .setHeaders(sendHeaders)
-                .build();
-		mockWebSocket.handleMessage(sendMessage);
-
-		assertEquals(1, mockWebSocket.getBrokerChannel().getMessages().size());
-		Message<?> reply = mockWebSocket.getBrokerChannel().getMessages().get(0);
-		StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
-		assertEquals(WEBSOCKET_SESSION_ID, replyHeaders.getSessionId());
-		assertEquals(TOPIC_WEBSOCKET_PATH + "/2", replyHeaders.getDestination());
-		String json = new String(MAPPER.writeValueAsBytes(reply.getPayload()), StandardCharsets.UTF_8);
-		JsonNode jsonNode = MAPPER.readTree(json);
-		assertTrue(jsonNode.get("operations").isEmpty());
-
-		List<Todo> all = (List<Todo>) repository.findAll();
-		assertEquals(3, all.size());
-		assertEquals(new Todo(1L, "A", false), all.get(0));
-		assertEquals(new Todo(2L, "B", true), all.get(1));
-		assertEquals(new Todo(3L, "C", false), all.get(2));
+		assertEquals(new Todo(3L, "C", true), all.get(1));
 	}
 
 	//
@@ -453,7 +413,7 @@ public class DiffSyncControllerTest {
 	}
 
 	private String resource(String name) throws IOException {
-		ClassPathResource resource = new ClassPathResource("/org/springframework/sync/" + name + ".json");
+		ClassPathResource resource = new ClassPathResource("/org/springframework/sync/json-payloads/" + name + ".json");
 		BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()));
 		StringBuilder builder = new StringBuilder();
 		while (reader.ready()) {
@@ -461,12 +421,6 @@ public class DiffSyncControllerTest {
 		}
 		return builder.toString();
 	}
-
-    private byte[] patchByteResource(String name) throws IOException {
-        ClassPathResource resource = new ClassPathResource("/org/springframework/sync/" + name + ".json");
-        List<PatchOperation> patchOperations = MAPPER.readValue(resource.getInputStream(), new TypeReference<>() {});
-        return MAPPER.writeValueAsBytes(new Patch(patchOperations));
-    }
 
 	private TodoRepository todoRepository() {
 		return repository;
@@ -486,18 +440,4 @@ public class DiffSyncControllerTest {
 				.setMessageConverters(new JsonPatchHttpMessageConverter())
 				.build();
 	}
-
-	private MockWebSocket mockWebSocket(TodoRepository todoRepository) {
-		DiffSyncController diffSyncController = diffSyncController(todoRepository);
-		return new MockWebSocket(diffSyncController);
-	}
-
-	private StompHeaderAccessor buildStompHeaderAccessor(String destination, StompCommand command) {
-		StompHeaderAccessor headers = StompHeaderAccessor.create(command);
-		headers.setDestination(destination);
-		headers.setSessionId(WEBSOCKET_SESSION_ID);
-		headers.setSessionAttributes(Collections.emptyMap());
-		return headers;
-	}
-
 }
