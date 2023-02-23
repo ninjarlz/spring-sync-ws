@@ -15,12 +15,14 @@
  */
 package org.springframework.sync;
 
+import org.springframework.sync.exception.PatchException;
+
 import static org.springframework.sync.PathToSpEL.pathToExpression;
 
 /**
  * <p>
  * Operation to copy a value from the given "from" path to the given "path".
- * Will throw a {@link PatchException} if either path is invalid or if the object at the from path 
+ * Will throw a {@link PatchException} if either path is invalid or if the object at the from path
  * is not assignable to the given path.
  * </p>
  * 

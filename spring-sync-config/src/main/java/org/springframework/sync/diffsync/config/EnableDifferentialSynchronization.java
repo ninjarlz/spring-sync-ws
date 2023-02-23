@@ -16,6 +16,9 @@
 package org.springframework.sync.diffsync.config;
 
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 
 import java.lang.annotation.*;
 
@@ -27,7 +30,10 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@Import({DifferentialSynchronizationRegistrar.class, WebSocketConfig.class})
+@EnableWebMvc
+@EnableWebSocketMessageBroker
+@EnableScheduling
+@Import({DifferentialSynchronizationRegistrar.class, HttpRegistrar.class, WebSocketRegistrar.class})
 public @interface EnableDifferentialSynchronization {
 
 }

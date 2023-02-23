@@ -23,6 +23,7 @@ import lombok.Getter;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionException;
 import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.sync.exception.PatchException;
 
 import java.util.List;
 import java.util.Objects;

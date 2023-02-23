@@ -23,11 +23,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.sync.*;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
+import org.springframework.sync.exception.PatchException;
 import org.springframework.sync.json.JsonPatchPatchConverter;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.annotation.Transactional;
 
+import javax.transaction.Transactional;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -38,7 +39,7 @@ import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes=EmbeddedDataSourceConfig.class)
-@Transactional
+@Transactional(rollbackOn = Exception.class)
 public class DiffSyncTest {
 
 	@Autowired
@@ -519,7 +520,7 @@ public class DiffSyncTest {
 		// The client can only assume that the server never received it (although it did).
 		// So it produces a new patch against its shadow (whose server version is still at 0 and client version is 1).
 		// It then sends both patches to the server and the server attempts to apply them both.
-		List<PatchOperation> ops2 = new ArrayList<PatchOperation>();
+		List<PatchOperation> ops2 = new ArrayList<>();
 		ops2.add(new AddOperation("/~", new Todo(200L, "NEW ITEM 200", false)));
 		VersionedPatch versionedPatch2 = new VersionedPatch(ops2, 0, 1);
 		patched = sync.apply(patched, versionedPatch, versionedPatch2);

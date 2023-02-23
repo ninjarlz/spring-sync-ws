@@ -15,6 +15,8 @@
  */
 package org.springframework.sync.diffsync;
 
+import org.springframework.sync.diffsync.exception.ResourceNotFoundException;
+
 import java.util.List;
 
 /**
@@ -37,7 +39,7 @@ public interface PersistenceCallback<T> {
 	 * @param id the id of the entity as a String. The implementation may convert it to the actual type.
 	 * @return the entity
 	 */
-	T findOne(String id);
+	T findOne(String id) throws ResourceNotFoundException;
 
 	/**
 	 * Save a single item.

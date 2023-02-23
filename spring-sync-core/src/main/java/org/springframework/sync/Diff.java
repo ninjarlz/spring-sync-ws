@@ -19,6 +19,7 @@ import difflib.Delta;
 import difflib.Delta.TYPE;
 import difflib.DiffUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.sync.exception.PatchException;
 import org.springframework.util.ObjectUtils;
 
 import java.io.IOException;

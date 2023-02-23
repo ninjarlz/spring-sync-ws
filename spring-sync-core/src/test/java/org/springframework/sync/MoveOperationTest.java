@@ -16,6 +16,7 @@
 package org.springframework.sync;
 
 import org.junit.Test;
+import org.springframework.sync.exception.PatchException;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -27,14 +27,11 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.sync.Patch;
 import org.springframework.sync.PatchOperation;
 import org.springframework.sync.Todo;
 import org.springframework.sync.TodoRepository;
-import org.springframework.sync.diffsync.EmbeddedDataSourceConfig;
-import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
-import org.springframework.sync.diffsync.ShadowStore;
+import org.springframework.sync.diffsync.*;
 import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
@@ -43,11 +40,8 @@ import org.springframework.sync.diffsync.web.JpaPersistenceCallback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import javax.transaction.Transactional;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -58,9 +52,7 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {EmbeddedDataSourceConfig.class})
-@EnableScheduling
-@EnableWebSocketMessageBroker
-@Transactional
+@Transactional(rollbackOn = Exception.class)
 @Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 public class DiffSyncControllerWebSocketTest {
 
@@ -69,8 +61,6 @@ public class DiffSyncControllerWebSocketTest {
     private static final String TOPIC_WEBSOCKET_RESOURCE_PATH = "/topic" + RESOURCE_PATH;
     private static final String WEBSOCKET_SESSION_ID = "0";
 
-    @PersistenceContext
-    private EntityManager entityManager;
     @Autowired
     private TodoRepository repository;
 
@@ -153,10 +143,11 @@ public class DiffSyncControllerWebSocketTest {
 
     private DiffSyncController diffSyncController(TodoRepository todoRepository) {
         PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
-        callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, entityManager, Todo.class));
+        callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, Todo.class));
         ShadowStore shadowStore = new MapBasedShadowStore("x");
-        DiffSyncService diffSyncService = new DiffSyncServiceImpl(shadowStore);
-        return new DiffSyncController(callbackRegistry, diffSyncService);
+        Equivalency equivalency = new IdPropertyEquivalency();
+        DiffSyncService diffSyncService = new DiffSyncServiceImpl(callbackRegistry, shadowStore, equivalency);
+        return new DiffSyncController(diffSyncService);
     }
 
     private MockWebSocket mockWebSocket(TodoRepository todoRepository) {

@@ -15,9 +15,11 @@
  */
 package org.springframework.sync;
 
+import org.springframework.sync.exception.PatchException;
+
 /**
  * Operation to add a new value to the given "path".
- * Will throw a {@link PatchException} if the path is invalid or if the given value 
+ * Will throw a {@link PatchException} if the path is invalid or if the given value
  * is not assignable to the given path.
  * 
  * @author Craig Walls

@@ -16,6 +16,7 @@
 package org.springframework.sync;
 
 import org.junit.Test;
+import org.springframework.sync.exception.PatchException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +39,7 @@ public class TestOperationTest {
 
 	}
 
-	@Test(expected=PatchException.class)
+	@Test(expected= PatchException.class)
 	public void testPropertyValueNotEquals() throws Exception {
 		// initial Todo list
 		List<Todo> todos = new ArrayList<>();

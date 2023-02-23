@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.sync;
+package org.springframework.sync.exception;
 
 /**
  * Exception thrown if an error occurs in the course of applying a Patch.

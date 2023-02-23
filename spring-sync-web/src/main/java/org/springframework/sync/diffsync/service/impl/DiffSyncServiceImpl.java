@@ -1,35 +1,48 @@
 package org.springframework.sync.diffsync.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.sync.Patch;
-import org.springframework.sync.PatchException;
 import org.springframework.sync.diffsync.*;
+import org.springframework.sync.diffsync.exception.PersistenceCallbackNotFoundException;
+import org.springframework.sync.diffsync.exception.ResourceNotFoundException;
 import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.exception.PatchException;
 
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
+@Transactional(rollbackOn = Exception.class)
 public class DiffSyncServiceImpl implements DiffSyncService {
 
+    private final PersistenceCallbackRegistry callbackRegistry;
     private final ShadowStore shadowStore;
-    private final Equivalency equivalency = new IdPropertyEquivalency();
+    private final Equivalency equivalency;
 
-    @Autowired
-    public DiffSyncServiceImpl(ShadowStore shadowStore) {
-        this.shadowStore = shadowStore;
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Patch patch(String resource, Patch patch) throws PersistenceCallbackNotFoundException, PatchException {
+        PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
+        return applyAndDiffAgainstList(patch, (List) persistenceCallback.findAll(), persistenceCallback);
+    }
+
+    public Patch patch(String resource, String id, Patch patch) throws PersistenceCallbackNotFoundException, PatchException, ResourceNotFoundException {
+        PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
+        Object findOne = persistenceCallback.findOne(id);
+        return applyAndDiff(patch, findOne, persistenceCallback);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> Patch applyAndDiff(Patch patch, Object target, PersistenceCallback<T> persistenceCallback) throws PatchException {
+    private <T> Patch applyAndDiff(Patch patch, Object target, PersistenceCallback<T> persistenceCallback) throws PatchException {
         DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
         T patched = sync.apply((T) target, patch);
         persistenceCallback.persistChange(patched);
         return sync.diff(patched);
     }
 
-    public <T> Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
+    private <T> Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
         DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
 
         List<T> patched = sync.apply(target, patch);

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.sync.*;
+import org.springframework.sync.exception.PatchException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -50,12 +51,12 @@ public class JsonPatchPatchConverter implements PatchConverter<JsonNode> {
 		List<PatchOperation> ops = new ArrayList<>(opNodes.size());
 		for (Iterator<JsonNode> elements = opNodes.elements(); elements.hasNext(); ) {
 			JsonNode opNode = elements.next();
-			
+
 			String opType = opNode.get(PatchOperation.OP_ENTRY).textValue();
 			String path = opNode.get(PatchOperation.PATH_ENTRY).textValue();
-			
+
 			JsonNode valueNode = opNode.get(PatchOperation.VALUE_ENTRY);
-			Object value = valueFromJsonNode(path, valueNode);			
+			Object value = valueFromJsonNode(path, valueNode);
 			String from = opNode.has(FromOperation.FROM_ENTRY) ? opNode.get(FromOperation.FROM_ENTRY).textValue() : null;
 			switch (opType) {
 				case TestOperation.OP_TYPE -> ops.add(new TestOperation(path, value));
@@ -69,7 +70,7 @@ public class JsonPatchPatchConverter implements PatchConverter<JsonNode> {
 		}
 		return new Patch(ops);
 	}
-	
+
 	/**
 	 * Renders a {@link Patch} as a {@link JsonNode}.
 	 * @param patch the patch
@@ -98,26 +99,33 @@ public class JsonPatchPatchConverter implements PatchConverter<JsonNode> {
 	private Object valueFromJsonNode(String path, JsonNode valueNode) {
 		if (Objects.isNull(valueNode) || valueNode.isNull()) {
 			return null;
-		} else if (valueNode.isTextual()) {
+		}
+		if (valueNode.isTextual()) {
 			return valueNode.asText();
-		} else if (valueNode.isFloatingPointNumber()) {
+		}
+		if (valueNode.isFloatingPointNumber()) {
 			return valueNode.asDouble();
-		} else if (valueNode.isBoolean()) {
+		}
+		if (valueNode.isBoolean()) {
 			return valueNode.asBoolean();
-		} else if (valueNode.isInt()) {
+		}
+		if (valueNode.isInt()) {
 			return valueNode.asInt();
-		} else if (valueNode.isLong()) {
+		}
+		if (valueNode.isLong()) {
 			return valueNode.asLong();
-		} else if (valueNode.isObject()) {
+		}
+		if (valueNode.isObject()) {
 			return new JsonLateObjectEvaluator(valueNode);
-		} else if (valueNode.isArray()) {
+		}
+		if (valueNode.isArray()) {
 			// TODO: Convert valueNode to array
 		}
-		
+
 		return null;
 	}
-	
-	
 
-	
+
+
+
 }

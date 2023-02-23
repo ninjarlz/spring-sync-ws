@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.sync.exception.PatchException;
 import org.springframework.sync.json.JsonPatchPatchConverter;
 
 import java.io.IOException;

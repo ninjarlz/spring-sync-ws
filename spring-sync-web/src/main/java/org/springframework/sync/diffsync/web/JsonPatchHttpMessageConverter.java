@@ -24,7 +24,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.sync.Patch;
-import org.springframework.sync.PatchException;
+import org.springframework.sync.exception.PatchException;
 import org.springframework.sync.json.JsonPatchPatchConverter;
 
 import java.io.IOException;
@@ -44,7 +44,7 @@ public class JsonPatchHttpMessageConverter extends AbstractHttpMessageConverter<
 
 	public JsonPatchHttpMessageConverter() {
 		setSupportedMediaTypes(List.of(JSON_PATCH));
-		this.jsonPatchMaker = new JsonPatchPatchConverter();
+		jsonPatchMaker = new JsonPatchPatchConverter();
 	}
 	
 	@Override

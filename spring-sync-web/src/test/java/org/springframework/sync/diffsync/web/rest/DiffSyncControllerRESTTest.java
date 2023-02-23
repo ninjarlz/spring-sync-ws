@@ -23,9 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.sync.Todo;
 import org.springframework.sync.TodoRepository;
-import org.springframework.sync.diffsync.EmbeddedDataSourceConfig;
-import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
-import org.springframework.sync.diffsync.ShadowStore;
+import org.springframework.sync.diffsync.*;
 import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
@@ -36,11 +34,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import javax.transaction.Transactional;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -56,14 +52,12 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 @ContextConfiguration(classes = {EmbeddedDataSourceConfig.class})
 @EnableScheduling
 @EnableWebSocketMessageBroker
-@Transactional
+@Transactional(rollbackOn = Exception.class)
 @Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 public class DiffSyncControllerRESTTest {
 
-	private static final String RESOURCE_PATH = "/todos";
+	private static final String RESOURCE_PATH = "/rest/todos";
 
-	@PersistenceContext
-	private EntityManager entityManager;
 	@Autowired
 	private TodoRepository repository;
 
@@ -428,10 +422,11 @@ public class DiffSyncControllerRESTTest {
 
 	private DiffSyncController diffSyncController(TodoRepository todoRepository) {
 		PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
-		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, entityManager, Todo.class));
+		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, Todo.class));
 		ShadowStore shadowStore = new MapBasedShadowStore("x");
-		DiffSyncService diffSyncService = new DiffSyncServiceImpl(shadowStore);
-		return new DiffSyncController(callbackRegistry, diffSyncService);
+		Equivalency equivalency = new IdPropertyEquivalency();
+		DiffSyncService diffSyncService = new DiffSyncServiceImpl(callbackRegistry, shadowStore, equivalency);
+		return new DiffSyncController(diffSyncService);
 	}
 
 	private MockMvc mockMvc(TodoRepository todoRepository) {

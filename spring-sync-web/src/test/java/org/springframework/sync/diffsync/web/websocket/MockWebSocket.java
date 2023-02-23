@@ -27,7 +27,7 @@ public class MockWebSocket {
                 new TestAnnotationMethodHandler(clientInboundChannel, clientOutboundChannel, new SimpMessagingTemplate(brokerChannel));
         annotationMethodHandler.registerHandler(handler);
         annotationMethodHandler.setDestinationPrefixes(Collections.singletonList("/app"));
-        annotationMethodHandler.setMessageConverter(new MappingJackson2MessageConverter(MediaType.APPLICATION_JSON, JSON_PATCH));
+        annotationMethodHandler.setMessageConverter(new MappingJackson2MessageConverter(JSON_PATCH, MediaType.APPLICATION_JSON));
         annotationMethodHandler.setApplicationContext(new StaticApplicationContext());
         annotationMethodHandler.afterPropertiesSet();
     }

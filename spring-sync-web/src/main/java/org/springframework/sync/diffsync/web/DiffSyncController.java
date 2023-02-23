@@ -15,76 +15,76 @@
  */
 package org.springframework.sync.diffsync.web;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.sync.Patch;
-import org.springframework.sync.PatchException;
-import org.springframework.sync.diffsync.DiffSync;
-import org.springframework.sync.diffsync.PersistenceCallback;
-import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
+import org.springframework.sync.diffsync.exception.PersistenceCallbackNotFoundException;
+import org.springframework.sync.diffsync.exception.ResourceNotFoundException;
 import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.exception.PatchException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-
 /**
- * Controller to handle PATCH requests and apply them to resources using {@link DiffSync}.
+ * Controller to handle PATCH requests and apply them to resources using {@link DiffSyncService}.
  *
  * @author Craig Walls
+ * @author Michał Kuśmidrowicz
  */
 @RestController
+@RequestMapping("${spring.diffsync.path:}/rest")
+@RequiredArgsConstructor
 public class DiffSyncController {
 
     private static final String UNABLE_TO_APPLY_PATCH_MSG = "Unable to apply patch - %s";
 
-    private final PersistenceCallbackRegistry callbackRegistry;
     private final DiffSyncService diffSyncService;
 
-    @Autowired
-    public DiffSyncController(PersistenceCallbackRegistry callbackRegistry, DiffSyncService diffSyncService) {
-        this.callbackRegistry = callbackRegistry;
-        this.diffSyncService = diffSyncService;
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @RequestMapping(
-            value = "${spring.diffsync.path:}/{resource}",
-            method = RequestMethod.PATCH)
-    public Patch patch(@PathVariable("resource") String resource, @RequestBody Patch patch) {
+    @PatchMapping("/{resource}")
+    @SendTo("/topic/{resource}")
+    public Patch patchRest(@PathVariable("resource") String resource, @RequestBody Patch patch) {
         try {
-            PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
-            return diffSyncService.applyAndDiffAgainstList(patch, (List) persistenceCallback.findAll(), persistenceCallback);
+            return diffSyncService.patch(resource, patch);
         } catch (PatchException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
+        } catch (PersistenceCallbackNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
         }
     }
 
-    @RequestMapping(
-            value = "${spring.diffsync.path:}/{resource}/{id}",
-            method = RequestMethod.PATCH)
-    public Patch patch(@PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) {
+    @PatchMapping(value = "/{resource}/{id}")
+    @SendTo("/topic/{resource}")
+    public Patch patchRest(@PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) {
         try {
-            PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
-            Object findOne = persistenceCallback.findOne(id);
-            return diffSyncService.applyAndDiff(patch, findOne, persistenceCallback);
+            return diffSyncService.patch(resource, id, patch);
         } catch (PatchException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
+        } catch (PersistenceCallbackNotFoundException | ResourceNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
         }
     }
 
     @MessageMapping("/{resource}")
     @SendTo("/topic/{resource}")
-    public Patch patchWs(@DestinationVariable("resource") String resource, Patch patch) {
-        return patch(resource, patch);
+    public Patch patchWebsocket(@DestinationVariable("resource") String resource, Patch patch) throws PersistenceCallbackNotFoundException, PatchException {
+        return diffSyncService.patch(resource, patch);
     }
 
     @MessageMapping("/{resource}/{id}")
     @SendTo("/topic/{resource}/{id}")
-    public Patch patchWs(@DestinationVariable("resource") String resource, @DestinationVariable("id") String id, Patch patch) {
-        return patch(resource, id, patch);
+    public Patch patchWebsocket(@DestinationVariable("resource") String resource, @DestinationVariable("id") String id, Patch patch) throws PersistenceCallbackNotFoundException, PatchException, ResourceNotFoundException {
+        return diffSyncService.patch(resource, id, patch);
     }
+
+    @MessageExceptionHandler({PatchException.class, PersistenceCallbackNotFoundException.class, ResourceNotFoundException.class})
+    @SendToUser("/queue/errors")
+    public String handleException(Throwable exception) {
+        return exception.getMessage();
+    }
+
 }

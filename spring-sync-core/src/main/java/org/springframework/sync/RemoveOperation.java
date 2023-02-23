@@ -15,6 +15,8 @@
  */
 package org.springframework.sync;
 
+import org.springframework.sync.exception.PatchException;
+
 /**
  * Operation that removes the value at the given path.
  * Will throw a {@link PatchException} if the given path isn't valid or if the path is non-nullable.

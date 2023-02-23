@@ -17,6 +17,7 @@ package org.springframework.sync;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.sync.exception.PatchException;
 import org.springframework.util.ObjectUtils;
 
 import java.math.BigDecimal;

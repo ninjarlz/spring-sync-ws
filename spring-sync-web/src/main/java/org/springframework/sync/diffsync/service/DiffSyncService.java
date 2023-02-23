@@ -1,12 +1,11 @@
 package org.springframework.sync.diffsync.service;
 
 import org.springframework.sync.Patch;
-import org.springframework.sync.PatchException;
-import org.springframework.sync.diffsync.PersistenceCallback;
-
-import java.util.List;
+import org.springframework.sync.diffsync.exception.PersistenceCallbackNotFoundException;
+import org.springframework.sync.diffsync.exception.ResourceNotFoundException;
+import org.springframework.sync.exception.PatchException;
 
 public interface DiffSyncService {
-    <T> Patch applyAndDiff(Patch patch, Object target, PersistenceCallback<T> persistenceCallback) throws PatchException;
-    <T>  Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException;
+    Patch patch(String resource, Patch patch) throws PersistenceCallbackNotFoundException, PatchException;
+    Patch patch(String resource, String id, Patch patch) throws PersistenceCallbackNotFoundException, PatchException, ResourceNotFoundException;
 }

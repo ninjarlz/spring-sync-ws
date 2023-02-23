@@ -16,6 +16,7 @@
 package org.springframework.sync.diffsync;
 
 import org.springframework.sync.Patch;
+import org.springframework.sync.diffsync.exception.PersistenceCallbackNotFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,8 +30,6 @@ import java.util.Map;
 public class PersistenceCallbackRegistry {
 
 	private final Map<String, PersistenceCallback<?>> persistenceCallbacks = new HashMap<>();
-	
-	public PersistenceCallbackRegistry() {}
 	
 	/**
 	 * Adds a {@link PersistenceCallback} to the registry with a key that is pluralized by the pluralize() method.
@@ -47,7 +46,8 @@ public class PersistenceCallbackRegistry {
 	 * @param key the key that the {@link PersistenceCallback} has been registered under.
 	 * @return the {@link PersistenceCallback}
 	 */
-	public PersistenceCallback<?> findPersistenceCallback(String key) {
+	public PersistenceCallback<?> findPersistenceCallback(String key) throws PersistenceCallbackNotFoundException {
+		throwIfPersistenceCallbackNotFound(key);
 		return persistenceCallbacks.get(key);
 	}
 	
@@ -60,5 +60,11 @@ public class PersistenceCallbackRegistry {
 	protected String pluralize(String entityTypeName) {
 		return entityTypeName.toLowerCase() + "s";
 	}
-	
+
+	private void throwIfPersistenceCallbackNotFound(String key) throws PersistenceCallbackNotFoundException {
+		if (persistenceCallbacks.containsKey(key)) {
+			return;
+		}
+		throw new PersistenceCallbackNotFoundException(key);
+	}
 }
