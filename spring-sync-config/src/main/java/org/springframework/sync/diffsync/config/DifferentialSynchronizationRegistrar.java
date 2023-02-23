@@ -20,8 +20,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.sync.diffsync.Equivalency;
 import org.springframework.sync.diffsync.IdPropertyEquivalency;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
@@ -30,9 +28,7 @@ import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
-import org.springframework.sync.diffsync.web.JsonPatchHttpMessageConverter;
 import org.springframework.util.Assert;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;

@@ -118,7 +118,7 @@ configure(allprojects) {
 
 	ext.javadocLinks = [
 		"https://docs.oracle.com/en/java/javase/17/docs/api/",
-		"http://docs.spring.io/spring/docs/${springVersion}/javadoc-api/"
+		"https://docs.spring.io/spring/docs/${springVersion}/javadoc-api/"
 	] as String[]
 
 	// servlet-api (2.5) and tomcat-servlet-api (3.0) classpath entries should not be
