@@ -16,11 +16,17 @@
 package org.springframework.sync.diffsync.web;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpAttributesContextHolder;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.sync.Patch;
 import org.springframework.sync.diffsync.exception.PersistenceCallbackNotFoundException;
@@ -29,6 +35,10 @@ import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.exception.PatchException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import javax.servlet.http.HttpSession;
+import java.net.URI;
 
 /**
  * Controller to handle PATCH requests and apply them to resources using {@link DiffSyncService}.
@@ -37,54 +47,94 @@ import org.springframework.web.server.ResponseStatusException;
  * @author Michał Kuśmidrowicz
  */
 @RestController
-@RequestMapping("${spring.diffsync.path:}/rest")
+@RequestMapping("${spring.diff-sync.path:}/rest")
 @RequiredArgsConstructor
+@Log4j2
 public class DiffSyncController {
 
-    private static final String UNABLE_TO_APPLY_PATCH_MSG = "Unable to apply patch - %s";
-
+    private static final MediaType JSON_PATCH = new MediaType("application", "json-patch+json");
+    private static final String JSON_PATCH_VALUE = "application/json-patch+json";
+    private static final String PATCH_RECEIVED_MSG = "New patch for sessionId '%s' and path '%s' received";
+    private static final String UNABLE_TO_APPLY_PATCH_MSG = "Unable to apply patch for sessionId '%s' because of: %s";
+    private static final String PATCH_APPLIED_MSG = "Patch for sessionId '%s' and path '%s' applied";
     private final DiffSyncService diffSyncService;
+    private final SimpMessageSendingOperations brokerTemplate;
 
-    @PatchMapping("/{resource}")
-    @SendTo("/topic/{resource}")
-    public Patch patchRest(@PathVariable("resource") String resource, @RequestBody Patch patch) {
+    @PatchMapping(value = "/{resource}", consumes = JSON_PATCH_VALUE, produces = JSON_PATCH_VALUE)
+    public ResponseEntity<Patch> patchRest(HttpSession session, @PathVariable("resource") String resource, @RequestBody Patch patch) {
         try {
-            return diffSyncService.patch(resource, patch);
+            log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), "/" + resource));
+            patch = diffSyncService.patch(resource, patch);
+            log.info(String.format(PATCH_APPLIED_MSG, session.getId(), "/" + resource));
+            String destination = String.format("/topic/%s", resource);
+            brokerTemplate.convertAndSend(destination, patch);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .contentType(JSON_PATCH)
+                    .location(getCurrentURI())
+                    .body(patch);
         } catch (PatchException e) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
+            log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
         } catch (PersistenceCallbackNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
+            log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
         }
     }
 
-    @PatchMapping(value = "/{resource}/{id}")
-    @SendTo("/topic/{resource}")
-    public Patch patchRest(@PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) {
+    @PatchMapping(value = "/{resource}/{id}", consumes = JSON_PATCH_VALUE, produces = JSON_PATCH_VALUE)
+    public ResponseEntity<Patch> patchRest(HttpSession session, @PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) {
         try {
-            return diffSyncService.patch(resource, id, patch);
+            String resourcePath = String.format("/%s/%s", resource, id);
+            log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), resourcePath));
+            patch = diffSyncService.patch(resource, id, patch);
+            log.info(String.format(PATCH_APPLIED_MSG, session.getId(), resourcePath));
+            String destination = String.format("/topic%s", resourcePath);
+            brokerTemplate.convertAndSend(destination, patch);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .contentType(JSON_PATCH)
+                    .location(getCurrentURI())
+                    .body(patch);
         } catch (PatchException e) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
+            log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
         } catch (PersistenceCallbackNotFoundException | ResourceNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(UNABLE_TO_APPLY_PATCH_MSG, e.getMessage()), e);
+            log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
         }
     }
 
     @MessageMapping("/{resource}")
     @SendTo("/topic/{resource}")
     public Patch patchWebsocket(@DestinationVariable("resource") String resource, Patch patch) throws PersistenceCallbackNotFoundException, PatchException {
-        return diffSyncService.patch(resource, patch);
+        String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
+        log.info(String.format(PATCH_RECEIVED_MSG, sessionId, "/" + resource));
+        patch = diffSyncService.patch(resource, patch);
+        log.info(String.format(PATCH_APPLIED_MSG, sessionId, "/" + resource));
+        return patch;
     }
 
     @MessageMapping("/{resource}/{id}")
     @SendTo("/topic/{resource}/{id}")
     public Patch patchWebsocket(@DestinationVariable("resource") String resource, @DestinationVariable("id") String id, Patch patch) throws PersistenceCallbackNotFoundException, PatchException, ResourceNotFoundException {
-        return diffSyncService.patch(resource, id, patch);
+        String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
+        String resourcePath = String.format("/%s/%s", resource, id);
+        log.info(String.format(PATCH_RECEIVED_MSG, sessionId, resourcePath));
+        patch = diffSyncService.patch(resource, id, patch);
+        log.info(String.format(PATCH_APPLIED_MSG, sessionId, resourcePath));
+        return patch;
     }
 
     @MessageExceptionHandler({PatchException.class, PersistenceCallbackNotFoundException.class, ResourceNotFoundException.class})
     @SendToUser("/queue/errors")
-    public String handleException(Throwable exception) {
-        return exception.getMessage();
+    public String handleException(Throwable e) {
+        String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
+        log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, sessionId, ExceptionUtils.getStackTrace(e)));
+        return String.format(UNABLE_TO_APPLY_PATCH_MSG, sessionId, e.getMessage());
     }
 
+    private URI getCurrentURI() {
+        return ServletUriComponentsBuilder.fromCurrentRequestUri()
+                .build()
+                .toUri();
+    }
 }

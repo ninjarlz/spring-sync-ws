@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.sync.diffsync.Equivalency;
 import org.springframework.sync.diffsync.IdPropertyEquivalency;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
@@ -83,8 +84,8 @@ public class DifferentialSynchronizationRegistrar {
 	}
 	
 	@Bean
-	public DiffSyncController diffSyncController(DiffSyncService diffSyncService) {
-		return new DiffSyncController(diffSyncService);
+	public DiffSyncController diffSyncController(DiffSyncService diffSyncService, SimpMessageSendingOperations brokerTemplate) {
+		return new DiffSyncController(diffSyncService, brokerTemplate);
 	}
 
 }

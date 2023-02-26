@@ -79,7 +79,7 @@ public class Patch implements Serializable {
 	 * @param in The list to apply the patch to. 
 	 * @param type The list's generic type.
 	 * @param <T> the list's generic type.
-	 * @return An list modified by the patch.
+	 * @return A list modified by the patch.
 	 * @throws PatchException if there are any errors while applying the patch.
 	 */
 	public <T> List<T> apply(List<T> in, Class<T> type) throws PatchException {

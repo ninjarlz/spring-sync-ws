@@ -27,7 +27,6 @@ import org.springframework.sync.exception.PatchException;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static org.springframework.sync.PathToSpEL.pathToExpression;
 import static org.springframework.sync.PathToSpEL.pathToParentExpression;
@@ -127,7 +126,7 @@ public abstract class PatchOperation {
 	 */
 	protected void addValue(Object target, Object value) {
 		Expression parentExpression = pathToParentExpression(path);
-		Object parent = Optional.ofNullable(parentExpression.getValue(target)).orElse(null);
+		Object parent = parentExpression.getValue(target);
 		Integer listIndex = targetListIndex(path);
 		if (!(parent instanceof List) || Objects.isNull(listIndex)) {
 			spelExpression.setValue(target, value);

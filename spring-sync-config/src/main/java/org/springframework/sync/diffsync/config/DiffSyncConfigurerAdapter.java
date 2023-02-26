@@ -28,7 +28,7 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
  */
 public class DiffSyncConfigurerAdapter implements DiffSyncConfigurer {
 
-	@Value( "${:spring.diffsync.path:}" )
+	@Value( "${spring.diff-sync.path:}" )
 	private String diffSyncPath;
 
 	@Override
@@ -48,7 +48,7 @@ public class DiffSyncConfigurerAdapter implements DiffSyncConfigurer {
 
 	@Override
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
-		String path = String.format("%s/websocket", diffSyncPath);
+		String path = String.format("/%s/websocket", diffSyncPath);
 		registry.addEndpoint(path).setAllowedOrigins("*");
 		registry.addEndpoint(path).setAllowedOrigins("*").withSockJS();
 	}

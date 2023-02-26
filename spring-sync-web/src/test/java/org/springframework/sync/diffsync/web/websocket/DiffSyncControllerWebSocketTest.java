@@ -23,7 +23,10 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
@@ -37,26 +40,35 @@ import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.sync.diffsync.web.JpaPersistenceCallback;
+import org.springframework.sync.diffsync.web.JsonPatchHttpMessageConverter;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.web.servlet.MockMvc;
 
 import javax.transaction.Transactional;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {EmbeddedDataSourceConfig.class})
-@Transactional(rollbackOn = Exception.class)
+@Transactional
 @Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 public class DiffSyncControllerWebSocketTest {
 
     private static final String RESOURCE_PATH = "/todos";
+    private static final String REST_RESOURCE_PATH = "/rest" + RESOURCE_PATH;
     private static final String APP_WEBSOCKET_RESOURCE_PATH = "/app" + RESOURCE_PATH;
     private static final String TOPIC_WEBSOCKET_RESOURCE_PATH = "/topic" + RESOURCE_PATH;
     private static final String WEBSOCKET_SESSION_ID = "0";
@@ -68,13 +80,16 @@ public class DiffSyncControllerWebSocketTest {
     private static final MediaType JSON_PATCH = new MediaType("application", "json-patch+json");
 
     //
-    // entity patching
+    // entity patching WebSocket
     //
 
     @Test
     public void patchSendsEntityStatusChangeWebSocket() throws Exception {
         TodoRepository todoRepository = todoRepository();
-        MockWebSocket mockWebSocket = mockWebSocket(todoRepository);
+        TestMessageChannel brokerChannel = new TestMessageChannel();
+        SimpMessageSendingOperations brokerTemplate = new SimpMessagingTemplate(brokerChannel);
+        DiffSyncController diffSyncController = diffSyncController(todoRepository, brokerTemplate);
+        MockWebSocket mockWebSocket = mockWebSocket(diffSyncController, brokerTemplate);
 
         StompHeaderAccessor sendHeaders = buildStompHeaderAccessor(APP_WEBSOCKET_RESOURCE_PATH + "/2");
         Message<byte[]> sendMessage = MessageBuilder
@@ -83,8 +98,8 @@ public class DiffSyncControllerWebSocketTest {
                 .build();
         mockWebSocket.handleMessage(sendMessage);
 
-        assertEquals(1, mockWebSocket.getBrokerChannel().getMessages().size());
-        Message<?> reply = mockWebSocket.getBrokerChannel().getMessages().get(0);
+        assertEquals(1, brokerChannel.getMessages().size());
+        Message<?> reply = brokerChannel.getMessages().get(0);
         StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
         assertEquals(WEBSOCKET_SESSION_ID, replyHeaders.getSessionId());
         assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
@@ -102,7 +117,10 @@ public class DiffSyncControllerWebSocketTest {
     @Test
     public void patchSendsEntityDescriptionChangeWebSocket() throws Exception {
         TodoRepository todoRepository = todoRepository();
-        MockWebSocket mockWebSocket = mockWebSocket(todoRepository);
+        TestMessageChannel brokerChannel = new TestMessageChannel();
+        SimpMessageSendingOperations brokerTemplate = new SimpMessagingTemplate(brokerChannel);
+        DiffSyncController diffSyncController = diffSyncController(todoRepository, brokerTemplate);
+        MockWebSocket mockWebSocket = mockWebSocket(diffSyncController, brokerTemplate);
 
         StompHeaderAccessor sendHeaders = buildStompHeaderAccessor(APP_WEBSOCKET_RESOURCE_PATH + "/2");
         Message<byte[]> sendMessage = MessageBuilder
@@ -111,10 +129,78 @@ public class DiffSyncControllerWebSocketTest {
                 .build();
         mockWebSocket.handleMessage(sendMessage);
 
-        assertEquals(1, mockWebSocket.getBrokerChannel().getMessages().size());
-        Message<?> reply = mockWebSocket.getBrokerChannel().getMessages().get(0);
+        assertEquals(1, brokerChannel.getMessages().size());
+        Message<?> reply = brokerChannel.getMessages().get(0);
         StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
         assertEquals(WEBSOCKET_SESSION_ID, replyHeaders.getSessionId());
+        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
+        String json = new String(MAPPER.writeValueAsBytes(reply.getPayload()), StandardCharsets.UTF_8);
+        JsonNode jsonNode = MAPPER.readTree(json);
+        assertTrue(jsonNode.get("operations").isEmpty());
+
+        List<Todo> all = (List<Todo>) repository.findAll();
+        assertEquals(3, all.size());
+        assertEquals(new Todo(1L, "A", false), all.get(0));
+        assertEquals(new Todo(2L, "BBB", false), all.get(1));
+        assertEquals(new Todo(3L, "C", false), all.get(2));
+    }
+
+    //
+    // entity patching REST
+    //
+
+    @Test
+    public void patchSendsEntityStatusChangeREST() throws Exception {
+        TodoRepository todoRepository = todoRepository();
+        TestMessageChannel brokerChannel = new TestMessageChannel();
+        SimpMessageSendingOperations brokerTemplate = new SimpMessagingTemplate(brokerChannel);
+        DiffSyncController diffSyncController = diffSyncController(todoRepository, brokerTemplate);
+        MockMvc mockMvc = mockMvc(diffSyncController);
+
+        mockMvc.perform(
+                        patch(REST_RESOURCE_PATH + "/2")
+                                .content(resource("patch-change-entity-status"))
+                                .accept(JSON_PATCH)
+                                .contentType(JSON_PATCH))
+                .andExpect(status().isOk())
+                .andExpect(content().string("[]"))
+                .andExpect(content().contentType(JSON_PATCH));
+
+        assertEquals(1, brokerChannel.getMessages().size());
+        Message<?> reply = brokerChannel.getMessages().get(0);
+        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
+        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
+        String json = new String(MAPPER.writeValueAsBytes(reply.getPayload()), StandardCharsets.UTF_8);
+        JsonNode jsonNode = MAPPER.readTree(json);
+        assertTrue(jsonNode.get("operations").isEmpty());
+
+        List<Todo> all = (List<Todo>) repository.findAll();
+        assertEquals(3, all.size());
+        assertEquals(new Todo(1L, "A", false), all.get(0));
+        assertEquals(new Todo(2L, "B", true), all.get(1));
+        assertEquals(new Todo(3L, "C", false), all.get(2));
+    }
+
+    @Test
+    public void patchSendsEntityDescriptionChangeREST() throws Exception {
+        TodoRepository todoRepository = todoRepository();
+        TestMessageChannel brokerChannel = new TestMessageChannel();
+        SimpMessageSendingOperations brokerTemplate = new SimpMessagingTemplate(brokerChannel);
+        DiffSyncController diffSyncController = diffSyncController(todoRepository, brokerTemplate);
+        MockMvc mockMvc = mockMvc(diffSyncController);
+
+        mockMvc.perform(
+                        patch(REST_RESOURCE_PATH + "/2")
+                                .content(resource("patch-change-entity-description"))
+                                .accept(JSON_PATCH)
+                                .contentType(JSON_PATCH))
+                .andExpect(status().isOk())
+                .andExpect(content().string("[]"))
+                .andExpect(content().contentType(JSON_PATCH));
+
+        assertEquals(1, brokerChannel.getMessages().size());
+        Message<?> reply = brokerChannel.getMessages().get(0);
+        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
         assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
         String json = new String(MAPPER.writeValueAsBytes(reply.getPayload()), StandardCharsets.UTF_8);
         JsonNode jsonNode = MAPPER.readTree(json);
@@ -137,22 +223,37 @@ public class DiffSyncControllerWebSocketTest {
         return MAPPER.writeValueAsBytes(new Patch(patchOperations));
     }
 
+    private String resource(String name) throws IOException {
+        ClassPathResource resource = new ClassPathResource("/org/springframework/sync/json-payloads/" + name + ".json");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()));
+        StringBuilder builder = new StringBuilder();
+        while (reader.ready()) {
+            builder.append(reader.readLine());
+        }
+        return builder.toString();
+    }
+
     private TodoRepository todoRepository() {
         return repository;
     }
 
-    private DiffSyncController diffSyncController(TodoRepository todoRepository) {
+    private DiffSyncController diffSyncController(TodoRepository todoRepository,SimpMessageSendingOperations brokerTemplate) {
         PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
         callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, Todo.class));
         ShadowStore shadowStore = new MapBasedShadowStore("x");
         Equivalency equivalency = new IdPropertyEquivalency();
         DiffSyncService diffSyncService = new DiffSyncServiceImpl(callbackRegistry, shadowStore, equivalency);
-        return new DiffSyncController(diffSyncService);
+        return new DiffSyncController(diffSyncService, brokerTemplate);
     }
 
-    private MockWebSocket mockWebSocket(TodoRepository todoRepository) {
-        DiffSyncController diffSyncController = diffSyncController(todoRepository);
-        return new MockWebSocket(diffSyncController);
+    private MockWebSocket mockWebSocket(DiffSyncController diffSyncController, SimpMessageSendingOperations brokerTemplate) {
+        return new MockWebSocket(diffSyncController, brokerTemplate);
+    }
+
+    private MockMvc mockMvc(DiffSyncController diffSyncController) {
+        return standaloneSetup(diffSyncController)
+                .setMessageConverters(new JsonPatchHttpMessageConverter(), new MappingJackson2HttpMessageConverter())
+                .build();
     }
 
     private StompHeaderAccessor buildStompHeaderAccessor(String destination) {

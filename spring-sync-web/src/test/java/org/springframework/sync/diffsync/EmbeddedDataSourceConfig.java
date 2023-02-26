@@ -66,8 +66,8 @@ public class EmbeddedDataSourceConfig {
 	public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
 			LocalContainerEntityManagerFactoryBean lef = new LocalContainerEntityManagerFactoryBean();
 			lef.setDataSource(dataSource());
-			lef.setJpaPropertyMap(this.jpaProperties());
-			lef.setJpaVendorAdapter(this.jpaVendorAdapter());
+			lef.setJpaPropertyMap(jpaProperties());
+			lef.setJpaVendorAdapter(jpaVendorAdapter());
 			lef.setPackagesToScan("org.springframework.sync");
 			return lef;
 	}

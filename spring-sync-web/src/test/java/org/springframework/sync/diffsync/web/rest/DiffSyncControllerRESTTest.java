@@ -20,6 +20,10 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.sync.Todo;
 import org.springframework.sync.TodoRepository;
@@ -30,6 +34,7 @@ import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.sync.diffsync.web.JpaPersistenceCallback;
 import org.springframework.sync.diffsync.web.JsonPatchHttpMessageConverter;
+import org.springframework.sync.diffsync.web.websocket.TestMessageChannel;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -52,7 +57,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 @ContextConfiguration(classes = {EmbeddedDataSourceConfig.class})
 @EnableScheduling
 @EnableWebSocketMessageBroker
-@Transactional(rollbackOn = Exception.class)
+@Transactional
 @Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 public class DiffSyncControllerRESTTest {
 
@@ -426,13 +431,15 @@ public class DiffSyncControllerRESTTest {
 		ShadowStore shadowStore = new MapBasedShadowStore("x");
 		Equivalency equivalency = new IdPropertyEquivalency();
 		DiffSyncService diffSyncService = new DiffSyncServiceImpl(callbackRegistry, shadowStore, equivalency);
-		return new DiffSyncController(diffSyncService);
+		MessageChannel brokerChannel = new TestMessageChannel();
+		SimpMessageSendingOperations brokerTemplate = new SimpMessagingTemplate(brokerChannel);
+		return new DiffSyncController(diffSyncService, brokerTemplate);
 	}
 
 	private MockMvc mockMvc(TodoRepository todoRepository) {
 		DiffSyncController controller = diffSyncController(todoRepository);
 		return standaloneSetup(controller)
-				.setMessageConverters(new JsonPatchHttpMessageConverter())
+				.setMessageConverters(new JsonPatchHttpMessageConverter(), new MappingJackson2HttpMessageConverter())
 				.build();
 	}
 }
