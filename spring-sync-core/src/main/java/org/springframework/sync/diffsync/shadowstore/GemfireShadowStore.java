@@ -15,14 +15,14 @@
  */
 package org.springframework.sync.diffsync.shadowstore;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.data.gemfire.GemfireOperations;
 import org.springframework.sync.diffsync.AbstractShadowStore;
 import org.springframework.sync.diffsync.Shadow;
 import org.springframework.sync.diffsync.ShadowStore;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * {@link ShadowStore} implementation that stores shadow copies in Pivotal GemFire.

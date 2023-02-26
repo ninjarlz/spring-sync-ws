@@ -15,12 +15,12 @@
  */
 package org.springframework.sync.diffsync.shadowstore;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.sync.diffsync.AbstractShadowStore;
 import org.springframework.sync.diffsync.Shadow;
 import org.springframework.sync.diffsync.ShadowStore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Implementation of {@link ShadowStore} that keeps shadows in an in-memory map.

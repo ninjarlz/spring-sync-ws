@@ -15,12 +15,11 @@
  */
 package org.springframework.sync.util;
 
+import org.apache.commons.lang3.SerializationUtils;
+
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.SerializationUtils;
 
 /**
  * Utility methods for deep cloning an object graph.

@@ -16,14 +16,17 @@ import org.springframework.web.patch.diffsync.ShadowStore;
  */
 package org.springframework.sync.diffsync.config;
 
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.sync.diffsync.PersistenceCallback;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.ShadowStore;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 
 /**
  * Configurer for DiffSync.
  * @author Craig Walls
+ * @author Michał Kuśmidrowicz
  */
 public interface DiffSyncConfigurer {
 
@@ -40,5 +43,8 @@ public interface DiffSyncConfigurer {
 	 * @return a {@link ShadowStore}
 	 */
 	ShadowStore getShadowStore(String remoteNodeId);
-	
+
+	void configureMessageBroker(MessageBrokerRegistry config);
+
+	void registerStompEndpoints(StompEndpointRegistry registry);
 }

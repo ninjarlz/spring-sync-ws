@@ -15,44 +15,39 @@
  */
 package org.springframework.sync.diffsync.web;
 
-import java.util.List;
-import java.util.NoSuchElementException;
-
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.sync.diffsync.PersistenceCallback;
+import org.springframework.sync.diffsync.exception.ResourceNotFoundException;
 
-import javax.persistence.EntityManager;
+import java.util.List;
 
 @RequiredArgsConstructor
-class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
+public class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
 	
-	private final CrudRepository<T, Long> repo;
-	private final EntityManager entityManager;
+	private final CrudRepository<T, Long> repository;
 	private final Class<T> entityType;
 	
 	@Override
 	public List<T> findAll() {
-		return (List<T>) repo.findAll();
+		return (List<T>) repository.findAll();
 	}
 	
 	@Override
-	public T findOne(String id) {
-		return repo.findById(Long.valueOf(id)).orElseThrow(NoSuchElementException::new);
+	public T findOne(String id) throws ResourceNotFoundException {
+		return repository.findById(Long.valueOf(id))
+				.orElseThrow(() -> new ResourceNotFoundException(id));
 	}
 	
 	@Override
 	public void persistChange(T itemToSave) {
-		repo.save(itemToSave);
-		entityManager.flush();
+		repository.save(itemToSave);
 	}
 	
 	@Override
 	public void persistChanges(List<T> itemsToSave, List<T> itemsToDelete) {
-		repo.saveAll(itemsToSave);
-		repo.deleteAll(itemsToDelete);
-		entityManager.flush();
+		repository.saveAll(itemsToSave);
+		repository.deleteAll(itemsToDelete);
 	}
 
 	@Override

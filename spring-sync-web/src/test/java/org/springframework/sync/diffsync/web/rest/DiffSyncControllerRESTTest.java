@@ -13,65 +13,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.sync.diffsync.web;
+package org.springframework.sync.diffsync.web.rest;
 
-import static org.junit.Assert.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.List;
-
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.sync.Todo;
 import org.springframework.sync.TodoRepository;
-import org.springframework.sync.diffsync.EmbeddedDataSourceConfig;
-import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
-import org.springframework.sync.diffsync.ShadowStore;
+import org.springframework.sync.diffsync.*;
+import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
+import org.springframework.sync.diffsync.web.DiffSyncController;
+import org.springframework.sync.diffsync.web.JpaPersistenceCallback;
+import org.springframework.sync.diffsync.web.JsonPatchHttpMessageConverter;
+import org.springframework.sync.diffsync.web.websocket.TestMessageChannel;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.util.NestedServletException;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceException;
+import javax.transaction.Transactional;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes=EmbeddedDataSourceConfig.class)
+@ContextConfiguration(classes = {EmbeddedDataSourceConfig.class})
+@EnableScheduling
+@EnableWebSocketMessageBroker
 @Transactional
-public class DiffSyncControllerTest {
+@Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+public class DiffSyncControllerRESTTest {
 
-	private static final String RESOURCE_PATH = "/todos";
+	private static final String RESOURCE_PATH = "/rest/todos";
 
-	@PersistenceContext
-	private EntityManager entityManager;
 	@Autowired
 	private TodoRepository repository;
-	
+
 	private static final MediaType JSON_PATCH = new MediaType("application", "json-patch+json");
-	
+
 	//
 	// entity patching
 	//
-	
+
 	@Test
 	public void patchSendsEntityStatusChange() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH + "/2")
 				.content(resource("patch-change-entity-status"))
@@ -92,7 +97,7 @@ public class DiffSyncControllerTest {
 	public void patchSendsEntityDescriptionChange() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH + "/2")
 				.content(resource("patch-change-entity-description"))
@@ -110,21 +115,31 @@ public class DiffSyncControllerTest {
 	}
 
 	@Test
-	public void patchSendsEntityIdChange() {
+	public void patchSendsEntityIdChange() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 
-		Exception e = assertThrows(NestedServletException.class, () -> mvc.perform(patch(RESOURCE_PATH + "/2")
+		mvc.perform(
+						patch(RESOURCE_PATH + "/2")
 								.content(resource("patch-change-entity-id"))
 								.accept(JSON_PATCH)
-								.contentType(JSON_PATCH)));
-		assertTrue(e.getCause() instanceof PersistenceException);
-}
+								.contentType(JSON_PATCH))
+				.andExpect(status().isOk())
+				.andExpect(content().string("[]"))
+				.andExpect(content().contentType(JSON_PATCH));
+
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(4, all.size());
+		assertEquals(new Todo(1L, "A", false), all.get(0));
+		assertEquals(new Todo(2L, "B", false), all.get(1));
+		assertEquals(new Todo(3L, "C", false), all.get(2));
+		assertEquals(new Todo(4L, "B", false), all.get(3)); // This is odd behavior, but correct in the context of the backing database.
+	}
 
 	//
-	// list patching
+	// list patching REST
 	//
-	
+
 	@Test
 	public void noChangesFromEitherSide() throws Exception {
 		TodoRepository todoRepository = todoRepository();
@@ -138,7 +153,7 @@ public class DiffSyncControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH))
 			.andExpect(status().isOk());
-		
+
 		List<Todo> all = (List<Todo>) repository.findAll();
 		assertEquals(3, all.size());
 		assertEquals(all.get(0), new Todo(1L, "A", false));
@@ -150,7 +165,7 @@ public class DiffSyncControllerTest {
 	public void patchSendsSingleStatusChange() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-change-single-status"))
@@ -171,7 +186,7 @@ public class DiffSyncControllerTest {
 	public void patchSendsAStatusChangeAndADescriptionChangeForSameItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-change-single-status-and-desc"))
@@ -192,7 +207,7 @@ public class DiffSyncControllerTest {
 	public void patchSendsAStatusChangeAndADescriptionChangeForDifferentItems() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-change-two-status-and-desc"))
@@ -210,11 +225,10 @@ public class DiffSyncControllerTest {
 	}
 
 	@Test
-	@Ignore
 	public void patchAddsAnItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-add-new-item"))
@@ -229,14 +243,14 @@ public class DiffSyncControllerTest {
 		assertEquals(all.get(0), new Todo(1L, "A", false));
 		assertEquals(all.get(1), new Todo(2L, "B", false));
 		assertEquals(all.get(2), new Todo(3L, "C", false));
-		assertEquals(all.get(2), new Todo(4L, "D", false));
+		assertEquals(all.get(3), new Todo(4L, "D", false));
 	}
-	
+
 	@Test
 	public void patchRemovesAnItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-remove-item"))
@@ -256,7 +270,7 @@ public class DiffSyncControllerTest {
 	public void patchRemovesTwoItems() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-remove-two-items"))
@@ -276,7 +290,7 @@ public class DiffSyncControllerTest {
 	public void patchUpdatesStatusOnOneItemAndRemovesTwoOtherItems() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-change-status-and-delete-two-items"))
@@ -295,7 +309,7 @@ public class DiffSyncControllerTest {
 	public void patchRemovesTwoOtherItemsAndUpdatesStatusOnAnother() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-delete-twoitems-and-change-status-on-another"))
@@ -314,7 +328,7 @@ public class DiffSyncControllerTest {
 	public void patchChangesItemStatusAndThenRemovesThatSameItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content(resource("patch-modify-then-remove-item"))
@@ -329,21 +343,20 @@ public class DiffSyncControllerTest {
 		assertEquals(all.get(0), new Todo(1L, "A", false));
 		assertEquals(all.get(1), new Todo(3L, "C", false));
 	}
-	
+
 	//
 	// server-side changes
 	//
 
 	@Test
-	@Ignore
 	public void noChangesFromClientSide_itemDeletedFromServer() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 
 		performNoOpRequestToSetupShadow(mvc);
-		
+
 		repository.deleteById(2L);
-		
+
 		mvc.perform(
 				patch(RESOURCE_PATH)
 				.content("[]")
@@ -358,34 +371,31 @@ public class DiffSyncControllerTest {
 		assertEquals(new Todo(1L, "A", false), all.get(0));
 		assertEquals(new Todo(3L, "C", false), all.get(1));
 	}
-	
+
 	@Test
-	@Ignore
 	public void statusChangedOnClient_itemDeletedFromServer() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
-		
+
 		performNoOpRequestToSetupShadow(mvc);
-		
+
 		repository.deleteById(2L);
-		
+
 		mvc.perform(
-				patch(RESOURCE_PATH)
-				.content(resource("patch-change-single-status"))
-				.accept(JSON_PATCH)
-				.contentType(JSON_PATCH))
-			.andExpect(content().string(resource("patch-remove-completed-item")))
-			.andExpect(content().contentType(JSON_PATCH))
-			.andExpect(status().isOk());
+						patch(RESOURCE_PATH)
+								.content(resource("patch-change-single-status"))
+								.accept(JSON_PATCH)
+								.contentType(JSON_PATCH))
+				.andExpect(content().string(resource("patch-remove-completed-item")))
+				.andExpect(content().contentType(JSON_PATCH))
+				.andExpect(status().isOk());
 
 		List<Todo> all = (List<Todo>) repository.findAll();
 		assertEquals(2, all.size());
 		assertEquals(new Todo(1L, "A", false), all.get(0));
-		assertEquals(new Todo(3L, "C", false), all.get(1));
+		assertEquals(new Todo(3L, "C", true), all.get(1));
 	}
-	
 
-	
 	//
 	// private helpers
 	//
@@ -400,12 +410,12 @@ public class DiffSyncControllerTest {
 			.andExpect(content().contentType(JSON_PATCH))
 			.andExpect(status().isOk());
 	}
-	
+
 	private String resource(String name) throws IOException {
-		ClassPathResource resource = new ClassPathResource("/org/springframework/sync/" + name + ".json");
+		ClassPathResource resource = new ClassPathResource("/org/springframework/sync/json-payloads/" + name + ".json");
 		BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()));
 		StringBuilder builder = new StringBuilder();
-		while(reader.ready()) {
+		while (reader.ready()) {
 			builder.append(reader.readLine());
 		}
 		return builder.toString();
@@ -415,17 +425,21 @@ public class DiffSyncControllerTest {
 		return repository;
 	}
 
-	private MockMvc mockMvc(TodoRepository todoRepository) {
-		ShadowStore shadowStore = new MapBasedShadowStore("x");
-		
+	private DiffSyncController diffSyncController(TodoRepository todoRepository) {
 		PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
-		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<Todo>(todoRepository, entityManager, Todo.class));
-		
-		DiffSyncController controller = new DiffSyncController(callbackRegistry, shadowStore);
-		MockMvc mvc = standaloneSetup(controller)
-				.setMessageConverters(new JsonPatchHttpMessageConverter())
-				.build();
-		return mvc;
+		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, Todo.class));
+		ShadowStore shadowStore = new MapBasedShadowStore("x");
+		Equivalency equivalency = new IdPropertyEquivalency();
+		DiffSyncService diffSyncService = new DiffSyncServiceImpl(callbackRegistry, shadowStore, equivalency);
+		MessageChannel brokerChannel = new TestMessageChannel();
+		SimpMessageSendingOperations brokerTemplate = new SimpMessagingTemplate(brokerChannel);
+		return new DiffSyncController(diffSyncService, brokerTemplate);
 	}
-	
+
+	private MockMvc mockMvc(TodoRepository todoRepository) {
+		DiffSyncController controller = diffSyncController(todoRepository);
+		return standaloneSetup(controller)
+				.setMessageConverters(new JsonPatchHttpMessageConverter(), new MappingJackson2HttpMessageConverter())
+				.build();
+	}
 }

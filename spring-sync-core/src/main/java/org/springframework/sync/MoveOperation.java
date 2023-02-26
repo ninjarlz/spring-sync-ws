@@ -15,6 +15,8 @@
  */
 package org.springframework.sync;
 
+import org.springframework.sync.exception.PatchException;
+
 /**
  * <p>
  * Operation that moves a value from the given "from" path to the given "path".

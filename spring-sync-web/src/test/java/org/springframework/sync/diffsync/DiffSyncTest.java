@@ -15,44 +15,31 @@
  */
 package org.springframework.sync.diffsync;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.sync.*;
+import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
+import org.springframework.sync.exception.PatchException;
+import org.springframework.sync.json.JsonPatchPatchConverter;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import javax.transaction.Transactional;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.sync.AddOperation;
-import org.springframework.sync.MoveOperation;
-import org.springframework.sync.Patch;
-import org.springframework.sync.PatchException;
-import org.springframework.sync.PatchOperation;
-import org.springframework.sync.Person;
-import org.springframework.sync.Todo;
-import org.springframework.sync.TodoRepository;
-import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
-import org.springframework.sync.json.JsonPatchPatchConverter;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes=EmbeddedDataSourceConfig.class)
-@Transactional
+@Transactional(rollbackOn = Exception.class)
 public class DiffSyncTest {
 
 	@Autowired
@@ -533,7 +520,7 @@ public class DiffSyncTest {
 		// The client can only assume that the server never received it (although it did).
 		// So it produces a new patch against its shadow (whose server version is still at 0 and client version is 1).
 		// It then sends both patches to the server and the server attempts to apply them both.
-		List<PatchOperation> ops2 = new ArrayList<PatchOperation>();
+		List<PatchOperation> ops2 = new ArrayList<>();
 		ops2.add(new AddOperation("/~", new Todo(200L, "NEW ITEM 200", false)));
 		VersionedPatch versionedPatch2 = new VersionedPatch(ops2, 0, 1);
 		patched = sync.apply(patched, versionedPatch, versionedPatch2);
@@ -640,7 +627,7 @@ public class DiffSyncTest {
 	}
 	
 	private Patch readJsonPatchFromResource(String resource) throws IOException, PatchException {
-		return new JsonPatchPatchConverter().convert(OBJECT_MAPPER.readTree(resource(resource)));
+		return new JsonPatchPatchConverter().convert(OBJECT_MAPPER.readTree(resource("json-payloads/" + resource)));
 	}
 
 	private String resource(String name) throws IOException {

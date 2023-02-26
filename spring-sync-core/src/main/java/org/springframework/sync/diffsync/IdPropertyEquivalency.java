@@ -15,9 +15,9 @@
  */
 package org.springframework.sync.diffsync;
 
-import java.lang.reflect.Field;
-
 import org.springframework.util.ObjectUtils;
+
+import java.lang.reflect.Field;
 
 /**
  * Determines if two objects are equivalent by comparing their "id" properties.

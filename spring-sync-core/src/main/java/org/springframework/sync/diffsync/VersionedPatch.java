@@ -1,9 +1,9 @@
 package org.springframework.sync.diffsync;
 
-import java.util.List;
-
 import org.springframework.sync.Patch;
 import org.springframework.sync.PatchOperation;
+
+import java.util.List;
 
 public class VersionedPatch extends Patch {
 

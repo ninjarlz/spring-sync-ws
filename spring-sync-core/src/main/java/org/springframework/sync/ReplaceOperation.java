@@ -15,6 +15,9 @@
  */
 package org.springframework.sync;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Operation that replaces the value at the given path with a new value.
  * 
@@ -29,7 +32,8 @@ public class ReplaceOperation extends PatchOperation {
 	 * @param path The path whose value is to be replaced. (e.g., '/foo/bar/4')
 	 * @param value The value that will replace the current path value.
 	 */
-	public ReplaceOperation(String path, Object value) {
+	@JsonCreator
+	public ReplaceOperation(@JsonProperty("path") String path, @JsonProperty("value") Object value) {
 		super(OP_TYPE, path, value);
 	}
 	

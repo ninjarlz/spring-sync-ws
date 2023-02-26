@@ -15,12 +15,13 @@
  */
 package org.springframework.sync;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
+import org.springframework.sync.exception.PatchException;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class MoveOperationTest {
 

@@ -20,37 +20,32 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.sync.diffsync.Equivalency;
+import org.springframework.sync.diffsync.IdPropertyEquivalency;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.ShadowStore;
+import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.util.Assert;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.servlet.http.HttpSession;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Configuration adapter for Differential Synchronization in Spring.
  * @author Craig Walls
+ * @author Michał Kuśmidrowicz
  */
 @Configuration
-public class DifferentialSynchronizationRegistrar implements WebMvcConfigurer {
+public class DifferentialSynchronizationRegistrar {
 
 	private static final String DIFF_SYNC_CONFIGURERS_MSG = "At least one configuration class must implement DiffSyncConfigurer";
 
 	private List<DiffSyncConfigurer> diffSyncConfigurers;
-
-	@Override
-	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
-		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
-		messageConverters.add(new MappingJackson2HttpMessageConverter());
-	}
 
 	@Autowired
 	public void setDiffSyncConfigurers(List<DiffSyncConfigurer> diffSyncConfigurers) {
@@ -77,10 +72,20 @@ public class DifferentialSynchronizationRegistrar implements WebMvcConfigurer {
 		diffSyncConfigurers.forEach(diffSyncConfigurer -> diffSyncConfigurer.addPersistenceCallbacks(registry));
 		return registry;
 	}
+
+	@Bean
+	public Equivalency equivalency() {
+		return new IdPropertyEquivalency();
+	}
+
+	@Bean
+	public DiffSyncService diffSyncService(PersistenceCallbackRegistry callbackRegistry, ShadowStore shadowStore, Equivalency equivalency) {
+		return new DiffSyncServiceImpl(callbackRegistry, shadowStore, equivalency);
+	}
 	
 	@Bean
-	public DiffSyncController diffSyncController(PersistenceCallbackRegistry callbackRegistry, ShadowStore shadowStore) {
-		return new DiffSyncController(callbackRegistry, shadowStore);
+	public DiffSyncController diffSyncController(DiffSyncService diffSyncService, SimpMessageSendingOperations brokerTemplate) {
+		return new DiffSyncController(diffSyncService, brokerTemplate);
 	}
 
 }

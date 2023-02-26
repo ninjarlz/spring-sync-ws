@@ -15,10 +15,9 @@
  */
 package org.springframework.sync.json;
 
-import org.springframework.sync.Patch;
-
 import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.sync.PatchException;
+import org.springframework.sync.Patch;
+import org.springframework.sync.exception.PatchException;
 
 /**
  * <p>A strategy interface for producing {@link Patch} instances from a patch document representation (such as JSON Patch) and 

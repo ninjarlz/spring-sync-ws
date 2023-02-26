@@ -15,9 +15,14 @@
  */
 package org.springframework.sync;
 
-import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import org.springframework.sync.exception.PatchException;
 import org.springframework.sync.util.DeepCloneUtils;
+
+import java.io.Serializable;
+import java.util.List;
 
 /**
  * <p>Represents a Patch.</p>
@@ -29,11 +34,13 @@ import org.springframework.sync.util.DeepCloneUtils;
  * 
  * @author Craig Walls
  */
-public class Patch {
+public class Patch implements Serializable {
 
+	@Getter
 	private final List<PatchOperation> operations;
 
-	public Patch(List<PatchOperation> operations) {
+	@JsonCreator
+	public Patch(@JsonProperty("operations") List<PatchOperation> operations) {
 		this.operations = operations;
 	}
 	
@@ -43,11 +50,7 @@ public class Patch {
 	public int size() {
 		return operations.size();
 	}
-	
-	public List<PatchOperation> getOperations() {
-		return operations;
-	}
-	
+
 	/**
 	 * Applies the Patch to a given Object graph. Makes a copy of the given object so that it will remain unchanged after application of the patch
 	 * and in case any errors occur while performing the patch.
@@ -76,7 +79,7 @@ public class Patch {
 	 * @param in The list to apply the patch to. 
 	 * @param type The list's generic type.
 	 * @param <T> the list's generic type.
-	 * @return An list modified by the patch.
+	 * @return A list modified by the patch.
 	 * @throws PatchException if there are any errors while applying the patch.
 	 */
 	public <T> List<T> apply(List<T> in, Class<T> type) throws PatchException {

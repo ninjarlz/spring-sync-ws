@@ -15,102 +15,126 @@
  */
 package org.springframework.sync.diffsync.web;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpAttributesContextHolder;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.sync.Patch;
-import org.springframework.sync.PatchException;
-import org.springframework.sync.diffsync.DiffSync;
-import org.springframework.sync.diffsync.Equivalency;
-import org.springframework.sync.diffsync.IdPropertyEquivalency;
-import org.springframework.sync.diffsync.PersistenceCallback;
-import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
-import org.springframework.sync.diffsync.ShadowStore;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.sync.diffsync.exception.PersistenceCallbackNotFoundException;
+import org.springframework.sync.diffsync.exception.ResourceNotFoundException;
+import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.exception.PatchException;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import javax.servlet.http.HttpSession;
+import java.net.URI;
 
 /**
- * Controller to handle PATCH requests an apply them to resources using {@link DiffSync}.
+ * Controller to handle PATCH requests and apply them to resources using {@link DiffSyncService}.
+ *
  * @author Craig Walls
+ * @author Michał Kuśmidrowicz
  */
 @RestController
+@RequestMapping("${spring.diff-sync.path:}/rest")
+@RequiredArgsConstructor
+@Log4j2
 public class DiffSyncController {
-	
-	private final ShadowStore shadowStore;
 
-	private final PersistenceCallbackRegistry callbackRegistry;
-	
-	private final Equivalency equivalency = new IdPropertyEquivalency();
+    private static final MediaType JSON_PATCH = new MediaType("application", "json-patch+json");
+    private static final String JSON_PATCH_VALUE = "application/json-patch+json";
+    private static final String PATCH_RECEIVED_MSG = "New patch for sessionId '%s' and path '%s' received";
+    private static final String UNABLE_TO_APPLY_PATCH_MSG = "Unable to apply patch for sessionId '%s' because of: %s";
+    private static final String PATCH_APPLIED_MSG = "Patch for sessionId '%s' and path '%s' applied";
+    private final DiffSyncService diffSyncService;
+    private final SimpMessageSendingOperations brokerTemplate;
 
-	@Autowired
-	public DiffSyncController(PersistenceCallbackRegistry callbackRegistry, ShadowStore shadowStore) {
-		this.callbackRegistry = callbackRegistry;
-		this.shadowStore = shadowStore;
-	}
+    @PatchMapping(value = "/{resource}", consumes = JSON_PATCH_VALUE, produces = JSON_PATCH_VALUE)
+    public ResponseEntity<Patch> patchRest(HttpSession session, @PathVariable("resource") String resource, @RequestBody Patch patch) {
+        try {
+            log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), "/" + resource));
+            patch = diffSyncService.patch(resource, patch);
+            log.info(String.format(PATCH_APPLIED_MSG, session.getId(), "/" + resource));
+            String destination = String.format("/topic/%s", resource);
+            brokerTemplate.convertAndSend(destination, patch);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .contentType(JSON_PATCH)
+                    .location(getCurrentURI())
+                    .body(patch);
+        } catch (PatchException e) {
+            log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
+        } catch (PersistenceCallbackNotFoundException e) {
+            log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
+        }
+    }
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	@RequestMapping(
-			value="${spring.diffsync.path:}/{resource}",
-			method=RequestMethod.PATCH)
-	public Patch patch(@PathVariable("resource") String resource, @RequestBody Patch patch) throws PatchException {
-		PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);		
-		return applyAndDiffAgainstList(patch, (List) persistenceCallback.findAll(), persistenceCallback);
-	}
+    @PatchMapping(value = "/{resource}/{id}", consumes = JSON_PATCH_VALUE, produces = JSON_PATCH_VALUE)
+    public ResponseEntity<Patch> patchRest(HttpSession session, @PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) {
+        try {
+            String resourcePath = String.format("/%s/%s", resource, id);
+            log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), resourcePath));
+            patch = diffSyncService.patch(resource, id, patch);
+            log.info(String.format(PATCH_APPLIED_MSG, session.getId(), resourcePath));
+            String destination = String.format("/topic%s", resourcePath);
+            brokerTemplate.convertAndSend(destination, patch);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .contentType(JSON_PATCH)
+                    .location(getCurrentURI())
+                    .body(patch);
+        } catch (PatchException e) {
+            log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
+        } catch (PersistenceCallbackNotFoundException | ResourceNotFoundException e) {
+            log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
+        }
+    }
 
-	@RequestMapping(
-			value="${spring.diffsync.path:}/{resource}/{id}",
-			method=RequestMethod.PATCH)
-	public Patch patch(@PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) throws PatchException {
-		PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);		
-		Object findOne = persistenceCallback.findOne(id);
-		return applyAndDiff(patch, findOne, persistenceCallback);
-	}
+    @MessageMapping("/{resource}")
+    @SendTo("/topic/{resource}")
+    public Patch patchWebsocket(@DestinationVariable("resource") String resource, Patch patch) throws PersistenceCallbackNotFoundException, PatchException {
+        String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
+        log.info(String.format(PATCH_RECEIVED_MSG, sessionId, "/" + resource));
+        patch = diffSyncService.patch(resource, patch);
+        log.info(String.format(PATCH_APPLIED_MSG, sessionId, "/" + resource));
+        return patch;
+    }
 
-	
-	@ExceptionHandler(PatchException.class)
-	@ResponseStatus(value=HttpStatus.CONFLICT, reason="Unable to apply patch")
-	public void handlePatchException(PatchException e) {}
-	
-	
-	@SuppressWarnings("unchecked")
-	private <T> Patch applyAndDiff(Patch patch, Object target, PersistenceCallback<T> persistenceCallback) throws PatchException {
-		DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
-		T patched = sync.apply((T) target, patch);
-		persistenceCallback.persistChange(patched);
-		return sync.diff(patched);
-	}
-	
-	private <T> Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
-		DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
-		
-		List<T> patched = sync.apply(target, patch);
+    @MessageMapping("/{resource}/{id}")
+    @SendTo("/topic/{resource}/{id}")
+    public Patch patchWebsocket(@DestinationVariable("resource") String resource, @DestinationVariable("id") String id, Patch patch) throws PersistenceCallbackNotFoundException, PatchException, ResourceNotFoundException {
+        String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
+        String resourcePath = String.format("/%s/%s", resource, id);
+        log.info(String.format(PATCH_RECEIVED_MSG, sessionId, resourcePath));
+        patch = diffSyncService.patch(resource, id, patch);
+        log.info(String.format(PATCH_APPLIED_MSG, sessionId, resourcePath));
+        return patch;
+    }
 
-		List<T> itemsToSave = new ArrayList<>(patched);
-		itemsToSave.removeAll(target);
+    @MessageExceptionHandler({PatchException.class, PersistenceCallbackNotFoundException.class, ResourceNotFoundException.class})
+    @SendToUser("/queue/errors")
+    public String handleException(Throwable e) {
+        String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
+        log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, sessionId, ExceptionUtils.getStackTrace(e)));
+        return String.format(UNABLE_TO_APPLY_PATCH_MSG, sessionId, e.getMessage());
+    }
 
-		// Determine which items should be deleted.
-		// Make a shallow copy of the target, remove items that are equivalent to items in the working copy.
-		// Equivalent is not the same as equals. It means "this is the same resource, even if it has changed".
-		// It usually means "are the id properties equals".
-		List<T> itemsToDelete = new ArrayList<>(target);
-		target.forEach(candidate -> {
-			for (T item : patched) {
-				if (equivalency.isEquivalent(candidate, item)) {
-					itemsToDelete.remove(candidate);
-					break;
-				}
-			}
-		});
-		persistenceCallback.persistChanges(itemsToSave, itemsToDelete);
-		
-		return sync.diff(patched);
-	}
-
+    private URI getCurrentURI() {
+        return ServletUriComponentsBuilder.fromCurrentRequestUri()
+                .build()
+                .toUri();
+    }
 }

@@ -15,12 +15,14 @@
  */
 package org.springframework.sync;
 
-import static org.springframework.sync.PathToSpEL.*;
+import org.springframework.sync.exception.PatchException;
+
+import static org.springframework.sync.PathToSpEL.pathToExpression;
 
 /**
  * <p>
  * Operation to copy a value from the given "from" path to the given "path".
- * Will throw a {@link PatchException} if either path is invalid or if the object at the from path 
+ * Will throw a {@link PatchException} if either path is invalid or if the object at the from path
  * is not assignable to the given path.
  * </p>
  * 
@@ -52,6 +54,7 @@ public class CopyOperation extends FromOperation {
 	 * @param path The path to copy the source value to. (e.g., '/foo/bar/4')
 	 * @param from The source path from which a value will be copied. (e.g., '/foo/bar/5')
 	 */
+
 	public CopyOperation(String path, String from) {
 		super(OP_TYPE, path, from);
 	}

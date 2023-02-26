@@ -15,15 +15,21 @@
  */
 package org.springframework.sync.diffsync.config;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.ShadowStore;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 
 /**
  * Adapter implementation of {@link DiffSyncConfigurer} providing default implementations.
  * @author Craig Walls
  */
 public class DiffSyncConfigurerAdapter implements DiffSyncConfigurer {
+
+	@Value( "${spring.diff-sync.path:}" )
+	private String diffSyncPath;
 
 	@Override
 	public void addPersistenceCallbacks(PersistenceCallbackRegistry registry) {
@@ -33,5 +39,18 @@ public class DiffSyncConfigurerAdapter implements DiffSyncConfigurer {
 	public ShadowStore getShadowStore(String remoteNodeId) {
 		return new MapBasedShadowStore(remoteNodeId);
 	}
-	
+
+	@Override
+	public void configureMessageBroker(MessageBrokerRegistry config) {
+		config.enableSimpleBroker("/topic", "/queue");
+		config.setApplicationDestinationPrefixes("/app");
+	}
+
+	@Override
+	public void registerStompEndpoints(StompEndpointRegistry registry) {
+		String path = String.format("/%s/websocket", diffSyncPath);
+		registry.addEndpoint(path).setAllowedOrigins("*");
+		registry.addEndpoint(path).setAllowedOrigins("*").withSockJS();
+	}
+
 }

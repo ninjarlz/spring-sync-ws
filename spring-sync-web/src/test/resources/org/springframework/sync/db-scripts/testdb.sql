@@ -1,7 +1,8 @@
 create table Todo (
-	id identity,
+	id int not null AUTO_INCREMENT,
 	description varchar(2000),
-	complete boolean
+	complete boolean,
+	primary key (id)
 );
 
 insert into Todo (description, complete) values ('A', false);

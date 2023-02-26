@@ -15,10 +15,13 @@
  */
 package org.springframework.sync;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.sync.exception.PatchException;
+import org.springframework.util.ObjectUtils;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
-import org.springframework.util.ObjectUtils;
 
 /**
  * <p>Operation to test values on a given target.</p>
@@ -42,7 +45,8 @@ public class TestOperation extends PatchOperation {
 	 * @param path The path to test. (e.g., '/foo/bar/4')
 	 * @param value The value to test the path against.
 	 */
-	public TestOperation(String path, Object value) {
+ 	@JsonCreator
+	public TestOperation(@JsonProperty("path") String path, @JsonProperty("value") Object value) {
 		super(OP_TYPE, path, value);
 	}
 	
@@ -56,12 +60,16 @@ public class TestOperation extends PatchOperation {
 	}
 	
 	private Object normalizeIfNumber(Object expected) {
-		if (expected instanceof Double || expected instanceof Float) {
-			expected = BigDecimal.valueOf(((Number) expected).doubleValue()); 
-		} else if (expected instanceof Number) {
-			expected = BigInteger.valueOf(((Number) expected).longValue()); 
+		if (isFloatingPointNumber(expected)) {
+			return BigDecimal.valueOf(((Number) expected).doubleValue());
+		}
+		if (expected instanceof Number) {
+			return BigInteger.valueOf(((Number) expected).longValue());
 		}
 		return expected;
 	}
-	
+
+	private boolean isFloatingPointNumber(Object expected) {
+		return expected instanceof Double || expected instanceof Float;
+	}
 }

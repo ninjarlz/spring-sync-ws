@@ -15,14 +15,12 @@
  */
 package org.springframework.sync.diffsync.config;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+
+import java.lang.annotation.*;
 
 /**
  * Enables Differential Synchronization.
@@ -32,7 +30,10 @@ import org.springframework.context.annotation.Import;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@Import(DifferentialSynchronizationRegistrar.class)
+@EnableWebMvc
+@EnableWebSocketMessageBroker
+@EnableScheduling
+@Import({DifferentialSynchronizationRegistrar.class, HttpRegistrar.class, WebSocketRegistrar.class})
 public @interface EnableDifferentialSynchronization {
 
 }
