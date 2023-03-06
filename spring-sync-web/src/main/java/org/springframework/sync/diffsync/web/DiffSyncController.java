@@ -71,12 +71,12 @@ public class DiffSyncController {
     public ResponseEntity<Patch> patchRest(HttpSession session, @PathVariable("resource") String resource, @RequestBody Patch patch) {
         try {
             log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), "/" + resource));
-            Patch patchModified = diffSyncService.patch(restShadowStore, resource, patch);
+            patch = diffSyncService.patch(restShadowStore, resource, patch);
             log.info(String.format(PATCH_APPLIED_MSG, session.getId(), "/" + resource));
             return ResponseEntity.status(HttpStatus.OK)
                     .contentType(JSON_PATCH)
                     .location(getCurrentURI())
-                    .body(patchModified);
+                    .body(patch);
         } catch (PatchException e) {
             log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
             throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
@@ -91,12 +91,12 @@ public class DiffSyncController {
         try {
             String resourcePath = String.format("/%s/%s", resource, id);
             log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), resourcePath));
-            Patch patchModified = diffSyncService.patch(restShadowStore, resource, id, patch);
+            patch = diffSyncService.patch(restShadowStore, resource, id, patch);
             log.info(String.format(PATCH_APPLIED_MSG, session.getId(), resourcePath));
             return ResponseEntity.status(HttpStatus.OK)
                     .contentType(JSON_PATCH)
                     .location(getCurrentURI())
-                    .body(patchModified);
+                    .body(patch);
         } catch (PatchException e) {
             log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
             throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
