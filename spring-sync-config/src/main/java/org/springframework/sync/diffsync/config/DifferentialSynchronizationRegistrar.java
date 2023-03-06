@@ -20,14 +20,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.messaging.simp.SimpAttributesContextHolder;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.sync.diffsync.Equivalency;
 import org.springframework.sync.diffsync.IdPropertyEquivalency;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
-import org.springframework.sync.diffsync.ShadowStore;
 import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
+import org.springframework.sync.diffsync.shadowstore.RestShadowStore;
+import org.springframework.sync.diffsync.shadowstore.ShadowStore;
+import org.springframework.sync.diffsync.shadowstore.WebSocketShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.util.Assert;
 
@@ -37,55 +40,69 @@ import java.util.Objects;
 
 /**
  * Configuration adapter for Differential Synchronization in Spring.
+ *
  * @author Craig Walls
  * @author Michał Kuśmidrowicz
  */
 @Configuration
 public class DifferentialSynchronizationRegistrar {
 
-	private static final String DIFF_SYNC_CONFIGURERS_MSG = "At least one configuration class must implement DiffSyncConfigurer";
+    private static final String DIFF_SYNC_CONFIGURERS_MSG = "At least one configuration class must implement DiffSyncConfigurer";
 
-	private List<DiffSyncConfigurer> diffSyncConfigurers;
+    private List<DiffSyncConfigurer> diffSyncConfigurers;
 
-	@Autowired
-	public void setDiffSyncConfigurers(List<DiffSyncConfigurer> diffSyncConfigurers) {
-		Assert.notNull(diffSyncConfigurers, DIFF_SYNC_CONFIGURERS_MSG);
-		Assert.notEmpty(diffSyncConfigurers, DIFF_SYNC_CONFIGURERS_MSG);
-		this.diffSyncConfigurers = diffSyncConfigurers;
-	}
-		
-	@Bean
-	@Scope(value="session", proxyMode=ScopedProxyMode.TARGET_CLASS)
-	public ShadowStore shadowStore(HttpSession session) {
-		for (DiffSyncConfigurer diffSyncConfigurer : diffSyncConfigurers) {
-			ShadowStore shadowStore = diffSyncConfigurer.getShadowStore(session.getId());
-			if (Objects.nonNull(shadowStore)) {
-				return shadowStore;
-			}
-		}
-		return new MapBasedShadowStore(session.getId());
-	}
-	
-	@Bean
-	public PersistenceCallbackRegistry persistenceCallbackRegistry() {
-		PersistenceCallbackRegistry registry = new PersistenceCallbackRegistry();
-		diffSyncConfigurers.forEach(diffSyncConfigurer -> diffSyncConfigurer.addPersistenceCallbacks(registry));
-		return registry;
-	}
+    @Autowired
+    public void setDiffSyncConfigurers(List<DiffSyncConfigurer> diffSyncConfigurers) {
+        Assert.notNull(diffSyncConfigurers, DIFF_SYNC_CONFIGURERS_MSG);
+        Assert.notEmpty(diffSyncConfigurers, DIFF_SYNC_CONFIGURERS_MSG);
+        this.diffSyncConfigurers = diffSyncConfigurers;
+    }
 
-	@Bean
-	public Equivalency equivalency() {
-		return new IdPropertyEquivalency();
-	}
+    @Bean
+    @Scope(value = "session", proxyMode = ScopedProxyMode.TARGET_CLASS)
+    public RestShadowStore restShadowStore(HttpSession session) {
+        return (RestShadowStore) buildShadowStore(session.getId());
+    }
 
-	@Bean
-	public DiffSyncService diffSyncService(PersistenceCallbackRegistry callbackRegistry, ShadowStore shadowStore, Equivalency equivalency) {
-		return new DiffSyncServiceImpl(callbackRegistry, shadowStore, equivalency);
-	}
-	
-	@Bean
-	public DiffSyncController diffSyncController(DiffSyncService diffSyncService, SimpMessageSendingOperations brokerTemplate) {
-		return new DiffSyncController(diffSyncService, brokerTemplate);
-	}
+    @Bean
+    @Scope(value = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
+    public WebSocketShadowStore webSocketShadowStore() {
+        String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
+        return (WebSocketShadowStore) buildShadowStore(sessionId);
+    }
 
+    @Bean
+    public PersistenceCallbackRegistry persistenceCallbackRegistry() {
+        PersistenceCallbackRegistry registry = new PersistenceCallbackRegistry();
+        diffSyncConfigurers.forEach(diffSyncConfigurer -> diffSyncConfigurer.addPersistenceCallbacks(registry));
+        return registry;
+    }
+
+    @Bean
+    public Equivalency equivalency() {
+        return new IdPropertyEquivalency();
+    }
+
+    @Bean
+    public DiffSyncService diffSyncService(PersistenceCallbackRegistry callbackRegistry, Equivalency equivalency) {
+        return new DiffSyncServiceImpl(callbackRegistry, equivalency);
+    }
+
+    @Bean
+    public DiffSyncController diffSyncController(DiffSyncService diffSyncService,
+                                                 RestShadowStore restShadowStore,
+                                                 WebSocketShadowStore webSocketShadowStore,
+                                                 SimpMessageSendingOperations brokerTemplate) {
+        return new DiffSyncController(restShadowStore, webSocketShadowStore, diffSyncService, brokerTemplate);
+    }
+
+    private ShadowStore buildShadowStore(String sessionId) {
+        for (DiffSyncConfigurer diffSyncConfigurer : diffSyncConfigurers) {
+            ShadowStore shadowStore = diffSyncConfigurer.getShadowStore(sessionId);
+            if (Objects.nonNull(shadowStore)) {
+                return shadowStore;
+            }
+        }
+        return new MapBasedShadowStore(sessionId);
+    }
 }

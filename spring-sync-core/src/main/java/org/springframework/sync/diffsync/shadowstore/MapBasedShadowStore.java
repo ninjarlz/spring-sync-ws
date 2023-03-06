@@ -15,9 +15,7 @@
  */
 package org.springframework.sync.diffsync.shadowstore;
 
-import org.springframework.sync.diffsync.AbstractShadowStore;
 import org.springframework.sync.diffsync.Shadow;
-import org.springframework.sync.diffsync.ShadowStore;
 
 import java.util.HashMap;
 import java.util.Map;

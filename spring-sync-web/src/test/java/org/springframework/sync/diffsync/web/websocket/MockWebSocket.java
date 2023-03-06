@@ -6,8 +6,8 @@ import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.SubscribableChannel;
-import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.sync.diffsync.web.JsonPatchWebSocketMessageConverter;
 
 import java.util.Collections;
 
@@ -26,7 +26,7 @@ public class MockWebSocket {
                 new TestAnnotationMethodHandler(clientInboundChannel, clientOutboundChannel, brokerTemplate);
         annotationMethodHandler.registerHandler(handler);
         annotationMethodHandler.setDestinationPrefixes(Collections.singletonList("/app"));
-        annotationMethodHandler.setMessageConverter(new MappingJackson2MessageConverter(JSON_PATCH, MediaType.APPLICATION_JSON));
+        annotationMethodHandler.setMessageConverter(new JsonPatchWebSocketMessageConverter());
         annotationMethodHandler.setApplicationContext(new StaticApplicationContext());
         annotationMethodHandler.afterPropertiesSet();
     }

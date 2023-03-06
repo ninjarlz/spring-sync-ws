@@ -20,14 +20,10 @@ import difflib.Delta.TYPE;
 import difflib.DiffUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.sync.exception.PatchException;
-import org.springframework.util.ObjectUtils;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * Provides support for producing a {@link Patch} from the comparison of two objects.
@@ -99,7 +95,7 @@ public class Diff {
 
 	@SuppressWarnings("unchecked")
 	private static void diffNonList(List<PatchOperation> operations, String path, Object original, Object modified) throws IOException, IllegalAccessException {
-		if (!ObjectUtils.nullSafeEquals(original, modified)) {
+		if (!Objects.equals(original, modified)) {
 			if (modified == null) {
 				operations.add(new RemoveOperation(path));
 				return;

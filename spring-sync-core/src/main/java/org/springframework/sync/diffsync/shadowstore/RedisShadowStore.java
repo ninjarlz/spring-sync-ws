@@ -18,9 +18,7 @@ package org.springframework.sync.diffsync.shadowstore;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.sync.diffsync.AbstractShadowStore;
 import org.springframework.sync.diffsync.Shadow;
-import org.springframework.sync.diffsync.ShadowStore;
 
 import java.util.ArrayList;
 import java.util.List;

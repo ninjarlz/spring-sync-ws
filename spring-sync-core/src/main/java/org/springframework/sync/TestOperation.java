@@ -18,10 +18,10 @@ package org.springframework.sync;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.sync.exception.PatchException;
-import org.springframework.util.ObjectUtils;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Objects;
 
 /**
  * <p>Operation to test values on a given target.</p>
@@ -54,7 +54,7 @@ public class TestOperation extends PatchOperation {
 	<T> void perform(Object target, Class<T> type) throws PatchException {
 		Object expected = normalizeIfNumber(evaluateValueFromTarget(target, type));
 		Object actual = normalizeIfNumber(getValueFromTarget(target));		
-		if (!ObjectUtils.nullSafeEquals(expected, actual)) {
+		if (!Objects.equals(expected, actual)) {
 			throw new PatchException(String.format(TEST_AGAINST_PATH_FAIL_MSG, path));
 		}
 	}

@@ -15,6 +15,8 @@
  */
 package org.springframework.sync;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.sync.exception.PatchException;
 
 import static org.springframework.sync.PathToSpEL.pathToExpression;
@@ -54,8 +56,8 @@ public class CopyOperation extends FromOperation {
 	 * @param path The path to copy the source value to. (e.g., '/foo/bar/4')
 	 * @param from The source path from which a value will be copied. (e.g., '/foo/bar/5')
 	 */
-
-	public CopyOperation(String path, String from) {
+	@JsonCreator
+	public CopyOperation(@JsonProperty("path") String path, @JsonProperty("from") String from) {
 		super(OP_TYPE, path, from);
 	}
 	

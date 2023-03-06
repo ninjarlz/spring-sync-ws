@@ -29,7 +29,7 @@ configure(allprojects) {
 	ext.springVersion            = "5.3.22"
 	ext.springReleaseVersion     = "latest.release"
 	ext.springSnapshotVersion    = "latest.integration"
-	ext.springAndroidVersion     = "1.0.1.RELEASE"
+	ext.springAndroidVersion     = "2.0.0.M4"
 	ext.commonsLangVersion       = "3.12.0"
 	ext.diffUtilsVersion         = "1.3.0"
 	ext.log4jVersion             = "2.19.0"
@@ -173,6 +173,7 @@ project('spring-sync-core-android') {
 		mavenCentral()
 		google()
 		maven { url "https://repo.spring.io/plugins-release-local" }
+		maven { url "https://repo.spring.io/milestone" }
 	}
 
 	description = "Spring Differential Synchronization and JSON Patch for Android"
@@ -191,10 +192,8 @@ project('spring-sync-core-android') {
 
 	dependencies {
 		implementation("org.springframework.android:spring-android-core:${springAndroidVersion}")
-		implementation("org.springframework:spring-expression:${springVersion}") {
-			// exclude in favor of Spring for Android Core
-			exclude group: "org.springframework", module: "spring-core"
-		}
+		implementation("org.springframework.android:spring-android-rest-template:${springAndroidVersion}")
+		implementation("org.springframework:spring-expression:${springVersion}")
 		implementation("org.apache.commons:commons-lang3:${commonsLangVersion}")
 		implementation("com.googlecode.java-diff-utils:diffutils:${diffUtilsVersion}")
 		implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}", optional

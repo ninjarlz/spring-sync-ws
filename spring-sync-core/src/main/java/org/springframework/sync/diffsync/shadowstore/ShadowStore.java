@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.sync.diffsync;
+package org.springframework.sync.diffsync.shadowstore;
+
+import org.springframework.sync.diffsync.Shadow;
 
 /**
  * Strategy interface for maintaining shadow copies across requests.

@@ -89,7 +89,11 @@ public class JsonPatchPatchConverter implements PatchConverter<JsonNode> {
 			}
 			Object value = operation.getValue();
 			if (Objects.nonNull(value)) {
-				opNode.set(PatchOperation.VALUE_ENTRY, MAPPER.valueToTree(value));
+				if (value instanceof JsonLateObjectEvaluator jsonLateObjectEvaluator) {
+					opNode.set(PatchOperation.VALUE_ENTRY, jsonLateObjectEvaluator.getValueNode());
+				} else {
+					opNode.set(PatchOperation.VALUE_ENTRY, MAPPER.valueToTree(value));
+				}
 			}
 			patchNode.add(opNode);
 		}

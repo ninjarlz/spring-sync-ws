@@ -15,9 +15,8 @@
  */
 package org.springframework.sync.diffsync;
 
-import org.springframework.util.ObjectUtils;
-
 import java.lang.reflect.Field;
+import java.util.Objects;
 
 /**
  * Determines if two objects are equivalent by comparing their "id" properties.
@@ -37,7 +36,7 @@ public class IdPropertyEquivalency implements Equivalency {
 			Field idField2 = o2.getClass().getDeclaredField(ID_FIELD);
 			idField2.setAccessible(true);
 			Object id2 = idField2.get(o2);
-			return ObjectUtils.nullSafeEquals(id1, id2);
+			return Objects.equals(id1, id2);
 		} catch (NoSuchFieldException | IllegalAccessException e) {
 			return false;
 		}

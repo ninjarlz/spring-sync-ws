@@ -18,8 +18,8 @@ package org.springframework.sync.diffsync.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
-import org.springframework.sync.diffsync.ShadowStore;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
+import org.springframework.sync.diffsync.shadowstore.ShadowStore;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 
 /**
