@@ -58,6 +58,7 @@ import java.util.Map;
 public class DiffSyncController {
     private static final MediaType JSON_PATCH = new MediaType("application", "json-patch+json");
     private static final String JSON_PATCH_VALUE = "application/json-patch+json";
+    private static final String TOPIC_DESTINATION = "/topic";
     private static final String PATCH_RECEIVED_MSG = "New patch for sessionId '%s' and path '%s' received";
     private static final String UNABLE_TO_APPLY_PATCH_MSG = "Unable to apply patch for sessionId '%s' because of: %s";
     private static final String PATCH_APPLIED_MSG = "Patch for sessionId '%s' and path '%s' applied";
@@ -71,12 +72,14 @@ public class DiffSyncController {
     public ResponseEntity<Patch> patchRest(HttpSession session, @PathVariable("resource") String resource, @RequestBody Patch patch) {
         try {
             log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), "/" + resource));
-            patch = diffSyncService.patch(restShadowStore, resource, patch);
+            String resourceDestination = String.format("%s/%s", TOPIC_DESTINATION, resource);
+            Patch modifiedPatch = diffSyncService.patch(restShadowStore, resource, patch);
             log.info(String.format(PATCH_APPLIED_MSG, session.getId(), "/" + resource));
+            websocketBroadcastPatch(resourceDestination, patch, modifiedPatch);
             return ResponseEntity.status(HttpStatus.OK)
                     .contentType(JSON_PATCH)
                     .location(getCurrentURI())
-                    .body(patch);
+                    .body(modifiedPatch);
         } catch (PatchException e) {
             log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
             throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
@@ -89,14 +92,18 @@ public class DiffSyncController {
     @PatchMapping(value = "/{resource}/{id}", consumes = JSON_PATCH_VALUE, produces = JSON_PATCH_VALUE)
     public ResponseEntity<Patch> patchRest(HttpSession session, @PathVariable("resource") String resource, @PathVariable("id") String id, @RequestBody Patch patch) {
         try {
-            String resourcePath = String.format("/%s/%s", resource, id);
-            log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), resourcePath));
-            patch = diffSyncService.patch(restShadowStore, resource, id, patch);
-            log.info(String.format(PATCH_APPLIED_MSG, session.getId(), resourcePath));
+            String objectPath = String.format("/%s/%s", resource, id);
+            String resourceDestination = String.format("%s/%s", TOPIC_DESTINATION, resource);
+            String objectDestination = String.format("%s%s", TOPIC_DESTINATION, objectPath);
+            log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), objectPath));
+            Patch modifiedPatch = diffSyncService.patch(restShadowStore, resource, id, patch);
+            log.info(String.format(PATCH_APPLIED_MSG, session.getId(), objectPath));
+            websocketBroadcastPatch(objectDestination, patch, modifiedPatch);
+            websocketBroadcastPatch(resourceDestination, patch, modifiedPatch);
             return ResponseEntity.status(HttpStatus.OK)
                     .contentType(JSON_PATCH)
                     .location(getCurrentURI())
-                    .body(patch);
+                    .body(modifiedPatch);
         } catch (PatchException e) {
             log.error(String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), ExceptionUtils.getStackTrace(e)));
             throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(UNABLE_TO_APPLY_PATCH_MSG, session.getId(), e.getMessage()), e);
@@ -109,24 +116,24 @@ public class DiffSyncController {
     @MessageMapping("/{resource}")
     public void patchWebsocket(@DestinationVariable("resource") String resource, Patch patch) throws PersistenceCallbackNotFoundException, PatchException {
         String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
-        String destination = String.format("/topic/%s", resource);
+        String resourceDestination = String.format("%s/%s", TOPIC_DESTINATION, resource);
         log.info(String.format(PATCH_RECEIVED_MSG, sessionId, "/" + resource));
-        patch = diffSyncService.patch(webSocketShadowStore, resource, patch);
+        Patch modifiedPatch = diffSyncService.patch(webSocketShadowStore, resource, patch);
         log.info(String.format(PATCH_APPLIED_MSG, sessionId, "/" + resource));
-        Map<String, Object> stompHeaders = buildStompHeaders(destination, sessionId);
-        brokerTemplate.convertAndSend(destination, patch, stompHeaders);
+        websocketBroadcastPatch(resourceDestination, patch, modifiedPatch);
     }
 
     @MessageMapping("/{resource}/{id}")
     public void patchWebsocket(@DestinationVariable("resource") String resource, @DestinationVariable("id") String id, Patch patch) throws PersistenceCallbackNotFoundException, PatchException, ResourceNotFoundException {
         String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
-        String resourcePath = String.format("/%s/%s", resource, id);
-        String destination = String.format("/topic%s", resourcePath);
-        log.info(String.format(PATCH_RECEIVED_MSG, sessionId, resourcePath));
-        patch = diffSyncService.patch(webSocketShadowStore, resource, id, patch);
-        log.info(String.format(PATCH_APPLIED_MSG, sessionId, resourcePath));
-        Map<String, Object> stompHeaders = buildStompHeaders(destination, sessionId);
-        brokerTemplate.convertAndSend(destination, patch, stompHeaders);
+        String objectPath = String.format("/%s/%s", resource, id);
+        String resourceDestination = String.format("%s/%s", TOPIC_DESTINATION, resource);
+        String objectDestination = String.format("%s%s", TOPIC_DESTINATION, objectPath);
+        log.info(String.format(PATCH_RECEIVED_MSG, sessionId, objectPath));
+        Patch modifiedPatch = diffSyncService.patch(webSocketShadowStore, resource, id, patch);
+        log.info(String.format(PATCH_APPLIED_MSG, sessionId, objectPath));
+        websocketBroadcastPatch(objectDestination, patch, modifiedPatch);
+        websocketBroadcastPatch(resourceDestination, patch, modifiedPatch);
     }
 
     @MessageExceptionHandler({PatchException.class, PersistenceCallbackNotFoundException.class, ResourceNotFoundException.class})
@@ -143,10 +150,15 @@ public class DiffSyncController {
                 .toUri();
     }
 
-    private Map<String, Object> buildStompHeaders(String destination, String sessionId) {
+    private void websocketBroadcastPatch(String destination, Patch patch, Patch modifiedPatch) {
+        Map<String, Object> stompHeaders = buildStompHeaders(destination);
+        brokerTemplate.convertAndSend(destination, patch, stompHeaders);
+        brokerTemplate.convertAndSend(destination, modifiedPatch, stompHeaders);
+    }
+
+    private Map<String, Object> buildStompHeaders(String destination) {
         StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
         headers.setDestination(destination);
-        headers.setSessionId(sessionId);
         headers.setSessionAttributes(Collections.emptyMap());
         headers.setContentType(JSON_PATCH);
         return headers.toMap();
