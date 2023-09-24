@@ -57,6 +57,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -68,6 +69,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 @Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 public class DiffSyncControllerWebSocketTest {
 
+    private static final long WAIT_TIME = 500;
     private static final String RESOURCE_PATH = "/todos";
     private static final String REST_RESOURCE_PATH = "/rest" + RESOURCE_PATH;
     private static final String APP_WEBSOCKET_RESOURCE_PATH = "/app" + RESOURCE_PATH;
@@ -99,12 +101,13 @@ public class DiffSyncControllerWebSocketTest {
                 .build();
         mockWebSocket.handleMessage(sendMessage);
 
+        Thread.sleep(WAIT_TIME);
+
         assertEquals(4, brokerChannel.getMessages().size());
-        assertEquals(4, brokerChannel.getMessages().size());
-        assertStompReply(brokerChannel.getMessages().get(0), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
-        assertStompReply(brokerChannel.getMessages().get(1), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
-        assertStompReply(brokerChannel.getMessages().get(2), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
-        assertStompReply(brokerChannel.getMessages().get(3), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
         List<Todo> all = (List<Todo>) repository.findAll();
         assertEquals(3, all.size());
@@ -128,11 +131,13 @@ public class DiffSyncControllerWebSocketTest {
                 .build();
         mockWebSocket.handleMessage(sendMessage);
 
+        Thread.sleep(WAIT_TIME);
+
         assertEquals(4, brokerChannel.getMessages().size());
-        assertStompReply(brokerChannel.getMessages().get(0), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
-        assertStompReply(brokerChannel.getMessages().get(1), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
-        assertStompReply(brokerChannel.getMessages().get(2), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
-        assertStompReply(brokerChannel.getMessages().get(3), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
         List<Todo> all = (List<Todo>) repository.findAll();
         assertEquals(3, all.size());
@@ -162,11 +167,13 @@ public class DiffSyncControllerWebSocketTest {
                 .andExpect(content().string("[]"))
                 .andExpect(content().contentType(JSON_PATCH));
 
+        Thread.sleep(WAIT_TIME);
+
         assertEquals(4, brokerChannel.getMessages().size());
-        assertStompReply(brokerChannel.getMessages().get(0), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
-        assertStompReply(brokerChannel.getMessages().get(1), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
-        assertStompReply(brokerChannel.getMessages().get(2), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
-        assertStompReply(brokerChannel.getMessages().get(3), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
         List<Todo> all = (List<Todo>) repository.findAll();
         assertEquals(3, all.size());
@@ -192,11 +199,13 @@ public class DiffSyncControllerWebSocketTest {
                 .andExpect(content().string("[]"))
                 .andExpect(content().contentType(JSON_PATCH));
 
+        Thread.sleep(WAIT_TIME);
+
         assertEquals(4, brokerChannel.getMessages().size());
-        assertStompReply(brokerChannel.getMessages().get(0), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
-        assertStompReply(brokerChannel.getMessages().get(1), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
-        assertStompReply(brokerChannel.getMessages().get(2), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
-        assertStompReply(brokerChannel.getMessages().get(3), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
         List<Todo> all = (List<Todo>) repository.findAll();
         assertEquals(3, all.size());
@@ -209,11 +218,16 @@ public class DiffSyncControllerWebSocketTest {
     // private helpers
     //
 
-    private void assertStompReply(Message<?> reply, String destination, int payloadSize) {
-        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(destination, replyHeaders.getDestination());
-        Patch payload = (Patch) reply.getPayload();
-        assertEquals(payloadSize, payload.size());
+    private void assertStompReply(List<Message<?>> replies, String destination, int payloadSize) {
+        boolean isMessageSent = replies.stream().anyMatch(reply -> {
+            StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
+            if (!destination.equals(replyHeaders.getDestination())) {
+                return false;
+            }
+            Patch payload = (Patch) reply.getPayload();
+            return payloadSize == payload.size();
+        });
+        assertTrue(isMessageSent);
     }
 
     private Patch patchResource(String name) throws IOException {
