@@ -28,9 +28,7 @@ import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
-import org.springframework.sync.diffsync.shadowstore.RestShadowStore;
 import org.springframework.sync.diffsync.shadowstore.ShadowStore;
-import org.springframework.sync.diffsync.shadowstore.WebSocketShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.util.Assert;
 
@@ -60,15 +58,15 @@ public class DifferentialSynchronizationRegistrar {
 
     @Bean
     @Scope(value = "session", proxyMode = ScopedProxyMode.TARGET_CLASS)
-    public RestShadowStore restShadowStore(HttpSession session) {
-        return (RestShadowStore) buildShadowStore(session.getId());
+    public ShadowStore restShadowStore(HttpSession session) {
+        return buildShadowStore(session.getId());
     }
 
     @Bean
     @Scope(value = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
-    public WebSocketShadowStore webSocketShadowStore() {
+    public ShadowStore webSocketShadowStore() {
         String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
-        return (WebSocketShadowStore) buildShadowStore(sessionId);
+        return buildShadowStore(sessionId);
     }
 
     @Bean
@@ -90,8 +88,8 @@ public class DifferentialSynchronizationRegistrar {
 
     @Bean
     public DiffSyncController diffSyncController(DiffSyncService diffSyncService,
-                                                 RestShadowStore restShadowStore,
-                                                 WebSocketShadowStore webSocketShadowStore,
+                                                 ShadowStore restShadowStore,
+                                                 ShadowStore webSocketShadowStore,
                                                  SimpMessageSendingOperations brokerTemplate) {
         return new DiffSyncController(restShadowStore, webSocketShadowStore, diffSyncService, brokerTemplate);
     }

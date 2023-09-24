@@ -24,7 +24,6 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.sync.Todo;
 import org.springframework.sync.TodoRepository;
 import org.springframework.sync.diffsync.EmbeddedDataSourceConfig;
@@ -34,7 +33,7 @@ import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
-import org.springframework.sync.diffsync.shadowstore.RestShadowStore;
+import org.springframework.sync.diffsync.shadowstore.ShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.sync.diffsync.web.JpaPersistenceCallback;
 import org.springframework.sync.diffsync.web.JsonPatchHttpMessageConverter;
@@ -43,7 +42,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 
 import javax.transaction.Transactional;
 import java.io.BufferedReader;
@@ -58,12 +56,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {EmbeddedDataSourceConfig.class})
-@EnableScheduling
-@EnableWebSocketMessageBroker
+@ContextConfiguration(classes = EmbeddedDataSourceConfig.class)
 @Transactional
 @Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-public class 	DiffSyncControllerRESTTest {
+public class DiffSyncControllerRESTTest {
 
 	private static final String RESOURCE_PATH = "/rest/todos";
 
@@ -432,7 +428,7 @@ public class 	DiffSyncControllerRESTTest {
 	private DiffSyncController diffSyncController(TodoRepository todoRepository) {
 		PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
 		callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, Todo.class));
-		RestShadowStore restShadowStore = new MapBasedShadowStore("x");
+		ShadowStore restShadowStore = new MapBasedShadowStore("x");
 		Equivalency equivalency = new IdPropertyEquivalency();
 		DiffSyncService diffSyncService = new DiffSyncServiceImpl(callbackRegistry, equivalency);
 		MessageChannel brokerChannel = new TestMessageChannel();

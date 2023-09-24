@@ -40,8 +40,7 @@ import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.service.DiffSyncService;
 import org.springframework.sync.diffsync.service.impl.DiffSyncServiceImpl;
 import org.springframework.sync.diffsync.shadowstore.MapBasedShadowStore;
-import org.springframework.sync.diffsync.shadowstore.RestShadowStore;
-import org.springframework.sync.diffsync.shadowstore.WebSocketShadowStore;
+import org.springframework.sync.diffsync.shadowstore.ShadowStore;
 import org.springframework.sync.diffsync.web.DiffSyncController;
 import org.springframework.sync.diffsync.web.JpaPersistenceCallback;
 import org.springframework.sync.diffsync.web.JsonPatchHttpMessageConverter;
@@ -64,7 +63,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {EmbeddedDataSourceConfig.class})
+@ContextConfiguration(classes = EmbeddedDataSourceConfig.class)
 @Transactional
 @Sql(value = "/org/springframework/sync/db-scripts/reset-id-sequence.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 public class DiffSyncControllerWebSocketTest {
@@ -101,26 +100,11 @@ public class DiffSyncControllerWebSocketTest {
         mockWebSocket.handleMessage(sendMessage);
 
         assertEquals(4, brokerChannel.getMessages().size());
-        Message<?> reply = brokerChannel.getMessages().get(0);
-        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
-        Patch payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 2);
-        reply = brokerChannel.getMessages().get(1);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 0);
-        reply = brokerChannel.getMessages().get(2);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH, replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 2);
-        reply = brokerChannel.getMessages().get(3);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH, replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 0);
+        assertEquals(4, brokerChannel.getMessages().size());
+        assertStompReply(brokerChannel.getMessages().get(0), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
+        assertStompReply(brokerChannel.getMessages().get(1), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages().get(2), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
+        assertStompReply(brokerChannel.getMessages().get(3), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
         List<Todo> all = (List<Todo>) repository.findAll();
         assertEquals(3, all.size());
@@ -145,26 +129,10 @@ public class DiffSyncControllerWebSocketTest {
         mockWebSocket.handleMessage(sendMessage);
 
         assertEquals(4, brokerChannel.getMessages().size());
-        Message<?> reply = brokerChannel.getMessages().get(0);
-        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
-        Patch payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 2);
-        reply = brokerChannel.getMessages().get(1);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 0);
-        reply = brokerChannel.getMessages().get(2);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH, replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 2);
-        reply = brokerChannel.getMessages().get(3);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH, replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 0);
+        assertStompReply(brokerChannel.getMessages().get(0), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
+        assertStompReply(brokerChannel.getMessages().get(1), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages().get(2), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
+        assertStompReply(brokerChannel.getMessages().get(3), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
         List<Todo> all = (List<Todo>) repository.findAll();
         assertEquals(3, all.size());
@@ -195,26 +163,10 @@ public class DiffSyncControllerWebSocketTest {
                 .andExpect(content().contentType(JSON_PATCH));
 
         assertEquals(4, brokerChannel.getMessages().size());
-        Message<?> reply = brokerChannel.getMessages().get(0);
-        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
-        Patch payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 2);
-        reply = brokerChannel.getMessages().get(1);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 0);
-        reply = brokerChannel.getMessages().get(2);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH, replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 2);
-        reply = brokerChannel.getMessages().get(3);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH, replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 0);
+        assertStompReply(brokerChannel.getMessages().get(0), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
+        assertStompReply(brokerChannel.getMessages().get(1), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages().get(2), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
+        assertStompReply(brokerChannel.getMessages().get(3), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
         List<Todo> all = (List<Todo>) repository.findAll();
         assertEquals(3, all.size());
@@ -241,26 +193,10 @@ public class DiffSyncControllerWebSocketTest {
                 .andExpect(content().contentType(JSON_PATCH));
 
         assertEquals(4, brokerChannel.getMessages().size());
-        Message<?> reply = brokerChannel.getMessages().get(0);
-        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
-        Patch payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 2);
-        reply = brokerChannel.getMessages().get(1);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 0);
-        reply = brokerChannel.getMessages().get(2);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH, replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 2);
-        reply = brokerChannel.getMessages().get(3);
-        replyHeaders = StompHeaderAccessor.wrap(reply);
-        assertEquals(TOPIC_WEBSOCKET_RESOURCE_PATH, replyHeaders.getDestination());
-        payload = (Patch) reply.getPayload();
-        assertEquals(payload.size(), 0);
+        assertStompReply(brokerChannel.getMessages().get(0), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
+        assertStompReply(brokerChannel.getMessages().get(1), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages().get(2), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
+        assertStompReply(brokerChannel.getMessages().get(3), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
         List<Todo> all = (List<Todo>) repository.findAll();
         assertEquals(3, all.size());
@@ -272,6 +208,13 @@ public class DiffSyncControllerWebSocketTest {
     //
     // private helpers
     //
+
+    private void assertStompReply(Message<?> reply, String destination, int payloadSize) {
+        StompHeaderAccessor replyHeaders = StompHeaderAccessor.wrap(reply);
+        assertEquals(destination, replyHeaders.getDestination());
+        Patch payload = (Patch) reply.getPayload();
+        assertEquals(payloadSize, payload.size());
+    }
 
     private Patch patchResource(String name) throws IOException {
         ClassPathResource resource = new ClassPathResource("/org/springframework/sync/json-payloads/" + name + ".json");
@@ -293,11 +236,11 @@ public class DiffSyncControllerWebSocketTest {
         return repository;
     }
 
-    private DiffSyncController diffSyncController(TodoRepository todoRepository,SimpMessageSendingOperations brokerTemplate) {
+    private DiffSyncController diffSyncController(TodoRepository todoRepository, SimpMessageSendingOperations brokerTemplate) {
         PersistenceCallbackRegistry callbackRegistry = new PersistenceCallbackRegistry();
         callbackRegistry.addPersistenceCallback(new JpaPersistenceCallback<>(todoRepository, Todo.class));
-        WebSocketShadowStore webSocketShadowStore = new MapBasedShadowStore(WEBSOCKET_SESSION_ID);
-        RestShadowStore restShadowStore = new MapBasedShadowStore("x");
+        ShadowStore webSocketShadowStore = new MapBasedShadowStore(WEBSOCKET_SESSION_ID);
+        ShadowStore restShadowStore = new MapBasedShadowStore("x");
         Equivalency equivalency = new IdPropertyEquivalency();
         DiffSyncService diffSyncService = new DiffSyncServiceImpl(callbackRegistry, equivalency);
         return new DiffSyncController(restShadowStore, webSocketShadowStore, diffSyncService, brokerTemplate);

@@ -15,7 +15,7 @@
  */
 package org.springframework.sync.diffsync.shadowstore;
 
-public abstract class AbstractShadowStore implements WebSocketShadowStore, RestShadowStore {
+public abstract class AbstractShadowStore implements ShadowStore {
 
 	private final String nodeId;
 

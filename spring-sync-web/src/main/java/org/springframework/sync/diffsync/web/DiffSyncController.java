@@ -33,8 +33,7 @@ import org.springframework.sync.Patch;
 import org.springframework.sync.diffsync.exception.PersistenceCallbackNotFoundException;
 import org.springframework.sync.diffsync.exception.ResourceNotFoundException;
 import org.springframework.sync.diffsync.service.DiffSyncService;
-import org.springframework.sync.diffsync.shadowstore.RestShadowStore;
-import org.springframework.sync.diffsync.shadowstore.WebSocketShadowStore;
+import org.springframework.sync.diffsync.shadowstore.ShadowStore;
 import org.springframework.sync.exception.PatchException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -63,8 +62,8 @@ public class DiffSyncController {
     private static final String UNABLE_TO_APPLY_PATCH_MSG = "Unable to apply patch for sessionId '%s' because of: %s";
     private static final String PATCH_APPLIED_MSG = "Patch for sessionId '%s' and path '%s' applied";
 
-    private final RestShadowStore restShadowStore;
-    private final WebSocketShadowStore webSocketShadowStore;
+    private final ShadowStore restShadowStore;
+    private final ShadowStore webSocketShadowStore;
     private final DiffSyncService diffSyncService;
     private final SimpMessageSendingOperations brokerTemplate;
 
