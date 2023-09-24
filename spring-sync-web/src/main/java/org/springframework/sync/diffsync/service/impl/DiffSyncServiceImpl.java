@@ -3,10 +3,14 @@ package org.springframework.sync.diffsync.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.sync.Patch;
-import org.springframework.sync.diffsync.*;
+import org.springframework.sync.diffsync.DiffSync;
+import org.springframework.sync.diffsync.Equivalency;
+import org.springframework.sync.diffsync.PersistenceCallback;
+import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
 import org.springframework.sync.diffsync.exception.PersistenceCallbackNotFoundException;
 import org.springframework.sync.diffsync.exception.ResourceNotFoundException;
 import org.springframework.sync.diffsync.service.DiffSyncService;
+import org.springframework.sync.diffsync.shadowstore.ShadowStore;
 import org.springframework.sync.exception.PatchException;
 
 import javax.transaction.Transactional;
@@ -19,30 +23,31 @@ import java.util.List;
 public class DiffSyncServiceImpl implements DiffSyncService {
 
     private final PersistenceCallbackRegistry callbackRegistry;
-    private final ShadowStore shadowStore;
     private final Equivalency equivalency;
 
+    @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public Patch patch(String resource, Patch patch) throws PersistenceCallbackNotFoundException, PatchException {
+    public Patch patch(ShadowStore shadowStore, String resource, Patch patch) throws PersistenceCallbackNotFoundException, PatchException {
         PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
-        return applyAndDiffAgainstList(patch, (List) persistenceCallback.findAll(), persistenceCallback);
+        return applyAndDiffAgainstList(shadowStore, patch, (List) persistenceCallback.findAll(), persistenceCallback);
     }
 
-    public Patch patch(String resource, String id, Patch patch) throws PersistenceCallbackNotFoundException, PatchException, ResourceNotFoundException {
+    @Override
+    public Patch patch(ShadowStore shadowStore, String resource, String id, Patch patch) throws PersistenceCallbackNotFoundException, PatchException, ResourceNotFoundException {
         PersistenceCallback<?> persistenceCallback = callbackRegistry.findPersistenceCallback(resource);
         Object findOne = persistenceCallback.findOne(id);
-        return applyAndDiff(patch, findOne, persistenceCallback);
+        return applyAndDiff(shadowStore, patch, findOne, persistenceCallback);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Patch applyAndDiff(Patch patch, Object target, PersistenceCallback<T> persistenceCallback) throws PatchException {
+    private <T> Patch applyAndDiff(ShadowStore shadowStore, Patch patch, Object target, PersistenceCallback<T> persistenceCallback) throws PatchException {
         DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
         T patched = sync.apply((T) target, patch);
         persistenceCallback.persistChange(patched);
         return sync.diff(patched);
     }
 
-    private <T> Patch applyAndDiffAgainstList(Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
+    private <T> Patch applyAndDiffAgainstList(ShadowStore shadowStore, Patch patch, List<T> target, PersistenceCallback<T> persistenceCallback) throws PatchException {
         DiffSync<T> sync = new DiffSync<>(shadowStore, persistenceCallback.getEntityType());
 
         List<T> patched = sync.apply(target, patch);

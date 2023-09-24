@@ -15,6 +15,8 @@
  */
 package org.springframework.sync;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.sync.exception.PatchException;
 
 /**
@@ -33,7 +35,8 @@ public class AddOperation extends PatchOperation {
 	 * @param path The path where the value will be added. (e.g., '/foo/bar/4')
 	 * @param value The value to add.
 	 */
-	public AddOperation(String path, Object value) {
+	@JsonCreator
+	public AddOperation(@JsonProperty("path") String path, @JsonProperty("value") Object value) {
 		super(OP_TYPE, path, value);
 	}
 	

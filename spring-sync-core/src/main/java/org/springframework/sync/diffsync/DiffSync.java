@@ -17,6 +17,7 @@ package org.springframework.sync.diffsync;
 
 import org.springframework.sync.Diff;
 import org.springframework.sync.Patch;
+import org.springframework.sync.diffsync.shadowstore.ShadowStore;
 import org.springframework.sync.exception.PatchException;
 import org.springframework.sync.util.DeepCloneUtils;
 

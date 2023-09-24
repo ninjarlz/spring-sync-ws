@@ -15,6 +15,8 @@
  */
 package org.springframework.sync;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.sync.exception.PatchException;
 
 /**
@@ -31,7 +33,8 @@ public class RemoveOperation extends PatchOperation {
 	 * Constructs the remove operation
 	 * @param path The path of the value to be removed. (e.g., '/foo/bar/4')
 	 */
-	public RemoveOperation(String path) {
+	@JsonCreator
+	public RemoveOperation(@JsonProperty("path") String path) {
 		super(OP_TYPE, path);
 	}
 	

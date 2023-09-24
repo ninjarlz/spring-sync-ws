@@ -17,6 +17,7 @@ package org.springframework.sync.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import org.springframework.sync.LateObjectEvaluator;
 
 /**
@@ -26,7 +27,7 @@ import org.springframework.sync.LateObjectEvaluator;
 class JsonLateObjectEvaluator implements LateObjectEvaluator {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-
+	@Getter
 	private final JsonNode valueNode;
 
 	public JsonLateObjectEvaluator(JsonNode valueNode) {

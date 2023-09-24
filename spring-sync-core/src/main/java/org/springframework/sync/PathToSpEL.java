@@ -84,7 +84,7 @@ public class PathToSpEL {
 				int index = Integer.parseInt(pathNode);
 				spelBuilder.append('[').append(index).append(']');
 			} catch (NumberFormatException e) {
-				if (!spelBuilder.isEmpty()) {
+				if (spelBuilder.length() > 0) {
 					spelBuilder.append('.');
 				}
 				spelBuilder.append(pathNode);

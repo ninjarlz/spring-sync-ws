@@ -15,6 +15,8 @@
  */
 package org.springframework.sync;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.sync.exception.PatchException;
 
 /**
@@ -42,7 +44,8 @@ public class MoveOperation extends FromOperation {
 	 * @param path The path to move the source value to. (e.g., '/foo/bar/4')
 	 * @param from The source path from which a value will be moved. (e.g., '/foo/bar/5')
 	 */
-	public MoveOperation(String path, String from) {
+	@JsonCreator
+	public MoveOperation(@JsonProperty("path") String path, @JsonProperty("from") String from) {
 		super(OP_TYPE, path, from);
 	}
 	

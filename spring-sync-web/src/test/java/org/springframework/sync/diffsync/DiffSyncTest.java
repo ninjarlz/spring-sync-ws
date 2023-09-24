@@ -38,7 +38,7 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes=EmbeddedDataSourceConfig.class)
+@ContextConfiguration(classes = EmbeddedDataSourceConfig.class)
 @Transactional(rollbackOn = Exception.class)
 public class DiffSyncTest {
 

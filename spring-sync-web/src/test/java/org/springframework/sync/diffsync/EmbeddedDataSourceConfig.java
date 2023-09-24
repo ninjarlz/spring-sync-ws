@@ -32,7 +32,7 @@ import javax.sql.DataSource;
 import java.util.Map;
 
 @Configuration
-@EnableJpaRepositories(basePackages="org.springframework.sync")
+@EnableJpaRepositories(basePackages = "org.springframework.sync")
 public class EmbeddedDataSourceConfig {
 
 	@Bean

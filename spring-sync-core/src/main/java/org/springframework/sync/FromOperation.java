@@ -15,6 +15,9 @@
  */
 package org.springframework.sync;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Abstract base class for operations requiring a source property, such as "copy" and "move".
  * (e.g., copy <i>from</i> here to there.
@@ -32,7 +35,8 @@ public abstract class FromOperation extends PatchOperation {
 	 * @param path The operation's target path. (e.g., '/foo/bar/4')
 	 * @param from The operation's source path. (e.g., '/foo/bar/5')
 	 */
-	public FromOperation(String op, String path, String from) {
+	@JsonCreator
+	public FromOperation(@JsonProperty("op") String op, @JsonProperty("path") String path, @JsonProperty("from") String from) {
 		super(op, path);
 		this.from = from;
 	}
