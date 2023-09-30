@@ -104,8 +104,8 @@ public class DiffSyncControllerWebSocketTest {
         Thread.sleep(WAIT_TIME);
 
         assertEquals(4, brokerChannel.getMessages().size());
-        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
-        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + ".2", 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + ".2", 0);
         assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
         assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
@@ -134,8 +134,8 @@ public class DiffSyncControllerWebSocketTest {
         Thread.sleep(WAIT_TIME);
 
         assertEquals(4, brokerChannel.getMessages().size());
-        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
-        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + ".2", 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + ".2", 0);
         assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
         assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
@@ -170,8 +170,8 @@ public class DiffSyncControllerWebSocketTest {
         Thread.sleep(WAIT_TIME);
 
         assertEquals(4, brokerChannel.getMessages().size());
-        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
-        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + ".2", 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + ".2", 0);
         assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
         assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 
@@ -202,8 +202,8 @@ public class DiffSyncControllerWebSocketTest {
         Thread.sleep(WAIT_TIME);
 
         assertEquals(4, brokerChannel.getMessages().size());
-        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 2);
-        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + "/2", 0);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + ".2", 2);
+        assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH + ".2", 0);
         assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 2);
         assertStompReply(brokerChannel.getMessages(), TOPIC_WEBSOCKET_RESOURCE_PATH, 0);
 

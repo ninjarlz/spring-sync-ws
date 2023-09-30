@@ -94,7 +94,7 @@ public class DiffSyncController {
         try {
             String objectPath = String.format("/%s/%s", resource, id);
             String resourceDestination = String.format("%s/%s", TOPIC_DESTINATION, resource);
-            String objectDestination = String.format("%s%s", TOPIC_DESTINATION, objectPath);
+            String objectDestination = String.format("%s/%s.%s", TOPIC_DESTINATION, resource, id);
             log.info(String.format(PATCH_RECEIVED_MSG, session.getId(), objectPath));
             Patch modifiedPatch = diffSyncService.patch(restShadowStore, resource, id, patch);
             log.info(String.format(PATCH_APPLIED_MSG, session.getId(), objectPath));
@@ -128,7 +128,7 @@ public class DiffSyncController {
         String sessionId = SimpAttributesContextHolder.currentAttributes().getSessionId();
         String objectPath = String.format("/%s/%s", resource, id);
         String resourceDestination = String.format("%s/%s", TOPIC_DESTINATION, resource);
-        String objectDestination = String.format("%s%s", TOPIC_DESTINATION, objectPath);
+        String objectDestination = String.format("%s/%s.%s", TOPIC_DESTINATION, resource, id);
         log.info(String.format(PATCH_RECEIVED_MSG, sessionId, objectPath));
         Patch modifiedPatch = diffSyncService.patch(webSocketShadowStore, resource, id, patch);
         log.info(String.format(PATCH_APPLIED_MSG, sessionId, objectPath));
