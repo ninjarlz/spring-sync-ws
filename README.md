@@ -14,4 +14,4 @@ The aim of this project is to introduce real-time WebSocket/STOMP communication 
 * **Michał Kuśmidrowicz** - [ninjarlz](https://github.com/ninjarlz)
 
 ## License
-This project is licensed under the MIT License - see the [license.txt](license.txt) file for details
+This project is licensed under the Apache License 2.0 - see the [license.txt](license.txt) file for details
