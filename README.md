@@ -3,9 +3,12 @@
 ## Description
 
 The aim of this particular project is to **introduce real-time WebSocket/STOMP communication between clients and the Spring Sync backend**.
-Spring Sync is a prototype module of the Spring framework in the form of an open-source plugin. It was initially developed by Craig Walls and Brian Cavalier and was first introduced at the SpringOne2GX conference in 2014. Spring Sync aims to provide efficient communication and synchronization between a client and a server (or any set of nodes that share a specific resource). The primary goal of the module was to extend the Spring framework with an implementation of Neil Fraser's Differential Synchronization algorithm. While it natively supports the JSON Patch data exchange format, it is largely independent of any specific patch format—allowing users of the plugin to supply their own implementation.
-The current implementation of the plugin enables communication exclusively via REST endpoints. However, the subject of this project is to extend its functionality to support data synchronization using WebSocket/STOMP protocols. This approach ensures that data synchronization conducted through the Spring Sync plugin occurs in real time. For this purpose, both the framework's built-in message broker and an external solution, RabbitMQ, were utilized.
-The Spring Sync project is now archived and available in a public Git repository under the Apache 2.0 license.
+
+Spring Sync is a prototype module of the Spring framework in the form of an open-source plugin. It was initially developed by Craig Walls and Brian Cavalier and was first introduced at the [SpringOne2GX conference in 2014](https://www.slideshare.net/briancavalier/differential-sync-and-json-patch-s2-gx-2014). Spring Sync aims to provide efficient communication and synchronization between a client and a server (or any set of nodes that share a specific resource). The primary goal of the module was to extend the Spring framework with an implementation of Neil Fraser's Differential Synchronization algorithm. While it natively supports the JSON Patch data exchange format, it is largely independent of any specific patch format—allowing users of the plugin to supply their own implementation.
+The original implementation of the plugin enables communication exclusively via REST endpoints. 
+
+However, the subject of this project is to extend its functionality to support data synchronization using WebSocket/STOMP protocols. This approach ensures that data synchronization conducted through the Spring Sync plugin occurs in real time. For this purpose, both the framework's built-in message broker and an external solution, RabbitMQ, were utilized.
+The original Spring Sync project is now archived and available in a public [Git repository](https://github.com/spring-attic/spring-sync) under the Apache 2.0 license.
 
 ## DiffSync algorithm
 
