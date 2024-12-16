@@ -9,14 +9,14 @@ The Spring Sync project is now archived and available in a public Git repository
 
 ## DiffSync algorithm
 
-Fork of Spring Sync, a project created in order to enable efficient communication and data synchronization between clients and Spring server applications using a Differential Synchronization algorithm created by Neil Fraser and a JSON Patch format (one can find more details [here](http://neil.fraser.name/writing/sync/eng047-fraser.pdf)).
+Fork of Spring Sync, a project created in order to enable efficient communication and data synchronization between clients and Spring server applications using a [Differential Synchronization algorithm](http://neil.fraser.name/writing/sync/eng047-fraser.pdf) created by Neil Fraser and a [JSON Patch format](https://www.rfc-editor.org/info/rfc6902).
 JSON Patch defines a JSON document structure for expressing a sequence of operations to apply to a JavaScript Object Notation (JSON) document; it is suitable for use with the HTTP PATCH method. The "application/json-patch+json" media type is used to identify such patch documents.
 
 ## Usage
 
 Here are two repositories presenting usage of the plugin, simulating both sides of the communication:
-* [todosyncws](https://github.com/ninjarlz/todosyncws)
-* [todosyncclientws](https://github.com/ninjarlz/todosyncclientws)
+* [todosyncws](https://github.com/ninjarlz/todosyncws) - simple Spring Boot service simulating application backend powered by Spring Sync Ws plugin.
+* [todosyncclientws](https://github.com/ninjarlz/todosyncclientws) - simple Spring Boot service simulating application client powered by Spring Sync Ws plugin.
 
 ## Implementation
 
@@ -24,7 +24,8 @@ Further details of the provided implementation are described in author's master 
 
 ## Built with
 
-* [Spring Sync](https://spring.io/blog/2014/10/22/introducing-spring-sync) - project created in order to enable efficient communication and data synchronization between clients and Spring server applications.
+* [Spring Framework](https://spring.io/projects/spring-framework) - the world’s leading Java web app creation platform.
+* [Spring Sync](https://spring.io/blog/2014/10/22/introducing-spring-sync) - a Spring module that enables efficient communication and data synchronization between clients and Spring server applications using a [Differential Synchronization algorithm](http://neil.fraser.name/writing/sync/eng047-fraser.pdf) created by Neil Fraser and a [JSON Patch format](https://www.rfc-editor.org/info/rfc6902).
 * [Spring Messaging](https://docs.spring.io/spring-boot/reference/messaging/index.html) -  a module of the Spring Framework that provides support for messaging-based applications, including abstraction layers for messaging protocols, integration with message brokers, and support for annotations to handle messages seamlessly.
 * [Spring WebSocket](https://docs.spring.io/spring-framework/reference/web/websocket.html) - module of the Spring Framework that provides support for WebSocket-based communication, enabling full-duplex, real-time messaging between clients and servers with seamless integration into the Spring ecosystem.
 * [Apache Commons](https://commons.apache.org) - a collection of reusable, open-source Java libraries and components that provide a wide range of utilities to simplify common programming tasks,
@@ -42,5 +43,4 @@ Author of Spring Sync Ws extension:
 * **Michał Kuśmidrowicz** - [ninjarlz](https://github.com/ninjarlz)
 
 ## License
-
-This project is licensed under the MIT License - see the [license.txt](license.txt) file for details.
+This project is licensed under the Apache License 2.0 - see the [license.txt](license.txt) file for details
